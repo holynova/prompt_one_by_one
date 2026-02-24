@@ -1,15 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Gemini 批量生图插件",
-  "version": "1.0",
-  "description": "自动执行 Gemini 作图提示词队列，附带侧边栏和进度条",
+  "version": "2.0",
+  "description": "自动执行 Gemini 作图提示词队列，附带侧边栏、进度条、计时器和日志",
   "content_scripts": [
     {
       "matches": [
         "https://gemini.google.com/*"
       ],
+      "css": [
+        "sidebar.css"
+      ],
       "js": [
-        "content.js"
+        "automation.js",
+        "sidebar.js"
       ]
     }
   ]

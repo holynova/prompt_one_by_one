@@ -1,0 +1,295 @@
+/* ========================================
+   Gemini 批量作图插件 — 侧边栏样式
+   ======================================== */
+
+/* 侧边栏容器 */
+#gemini-auto-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 340px;
+  background-color: #1a1a2e;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+  color: #e0e0e0;
+}
+
+/* 头部区域 */
+.gemini-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.gemini-sidebar-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gemini-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gemini-link-btn {
+  background: rgba(66, 133, 244, 0.15);
+  border: 1px solid rgba(66, 133, 244, 0.3);
+  color: #8ab4f8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.gemini-link-btn:hover {
+  background: rgba(66, 133, 244, 0.3);
+  color: #aecbfa;
+}
+
+.gemini-collapse-btn {
+  border: none;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  color: #aaa;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.gemini-collapse-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+/* 标签文字 */
+.gemini-label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* 前缀/后缀输入框 */
+.gemini-input-field {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 13px;
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+}
+.gemini-input-field:focus {
+  border-color: rgba(66, 133, 244, 0.5);
+}
+.gemini-input-field::placeholder {
+  color: #555;
+}
+
+/* 提示词文本框 */
+#gemini-prompt-input {
+  width: 100%;
+  flex-grow: 1;
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  resize: none;
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#gemini-prompt-input:focus {
+  border-color: rgba(66, 133, 244, 0.5);
+}
+#gemini-prompt-input::placeholder {
+  color: #555;
+}
+#gemini-prompt-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 进度条区域 */
+.gemini-progress-container {
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.gemini-progress-bg {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#gemini-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+  transition: width 0.4s ease;
+  border-radius: 4px;
+}
+
+.gemini-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+#gemini-progress-text {
+  font-size: 11px;
+  color: #888;
+}
+
+/* 计时器 */
+#gemini-timer-display {
+  font-size: 11px;
+  color: #8ab4f8;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* 启动/停止按钮 */
+#gemini-auto-runner-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
+#gemini-auto-runner-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+#gemini-auto-runner-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+#gemini-auto-runner-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+#gemini-auto-runner-btn.running:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+#gemini-auto-runner-btn.completed {
+  background: linear-gradient(135deg, #616161, #424242);
+}
+
+/* 日志面板 */
+.gemini-log-container {
+  flex-shrink: 0;
+}
+
+#gemini-log-panel {
+  width: 100%;
+  height: 160px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  line-height: 1.6;
+  color: #aaa;
+}
+
+#gemini-log-panel::-webkit-scrollbar {
+  width: 4px;
+}
+#gemini-log-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+#gemini-log-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+.gemini-log-entry {
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+.gemini-log-time {
+  color: #666;
+  margin-right: 4px;
+}
+.gemini-log-success {
+  color: #66BB6A;
+}
+.gemini-log-error {
+  color: #ef5350;
+}
+.gemini-log-info {
+  color: #8ab4f8;
+}
+.gemini-log-warn {
+  color: #FFA726;
+}
+
+/* 展开按钮 */
+#gemini-open-btn {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  z-index: 999998;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+  display: none;
+  transition: all 0.25s;
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+}
+#gemini-open-btn:hover {
+  filter: brightness(1.1);
+  padding-right: 18px;
+}
