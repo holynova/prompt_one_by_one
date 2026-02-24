@@ -219,14 +219,21 @@ async function runGeminiQueue() {
       const delay = Math.floor(Math.random() * (GEMINI_CONFIG.maxDelay - GEMINI_CONFIG.minDelay + 1)) + GEMINI_CONFIG.minDelay;
       window._geminiAddLog(`⏸ 冷却 ${(delay / 1000).toFixed(1)}s...`, 'info');
 
+      const btn = document.getElementById('gemini-auto-runner-btn');
+
       // 分段 sleep 以便及时响应中止，同时显示倒计时
       const sliceMs = 500;
       let waited = 0;
       while (waited < delay && !window._geminiQueueAbort) {
         const remaining = Math.max(0, (delay - waited) / 1000);
         progressText.innerText = `冷却中 ${remaining.toFixed(1)}s | ${i + 1} / ${prompts.length}`;
+        if (btn) btn.innerText = `⏸ 冷却 ${remaining.toFixed(1)}s`;
         await sleep(Math.min(sliceMs, delay - waited));
         waited += sliceMs;
+      }
+      // 恢复按钮文字
+      if (btn && !window._geminiQueueAbort) {
+        btn.innerText = '⏹ 停止队列';
       }
     }
   }

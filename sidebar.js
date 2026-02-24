@@ -68,7 +68,10 @@ const SIDEBAR_HTML = `
     </div>
     <div class="gemini-progress-info">
       <span id="gemini-progress-text">准备就绪: 0 / 0</span>
-      <span id="gemini-timer-display">00:00</span>
+      <div class="gemini-timer-group">
+        <span id="gemini-timer-display" title="当前图片耗时">🖼 00:00</span>
+        <span id="gemini-total-timer-display" title="总任务耗时">⏱ 00:00</span>
+      </div>
     </div>
   </div>
 
@@ -82,19 +85,29 @@ const SIDEBAR_HTML = `
 
 // ========== 计时器管理 ==========
 let _timerInterval = null;
-let _timerStartTime = null;
+let _timerStartTime = null;   // 单张图片计时
+let _totalTimerStartTime = null;  // 总任务计时
+
+function _formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
+  const sec = String(totalSec % 60).padStart(2, '0');
+  return `${min}:${sec}`;
+}
 
 function startTimer() {
   _timerStartTime = Date.now();
+  _totalTimerStartTime = Date.now();
   const display = document.getElementById('gemini-timer-display');
+  const totalDisplay = document.getElementById('gemini-total-timer-display');
   if (_timerInterval) clearInterval(_timerInterval);
   _timerInterval = setInterval(() => {
-    if (!_timerStartTime) return;
-    const elapsed = Date.now() - _timerStartTime;
-    const totalSec = Math.floor(elapsed / 1000);
-    const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
-    const sec = String(totalSec % 60).padStart(2, '0');
-    display.textContent = `${min}:${sec}`;
+    if (_timerStartTime) {
+      display.textContent = `🖼 ${_formatTime(Date.now() - _timerStartTime)}`;
+    }
+    if (_totalTimerStartTime) {
+      totalDisplay.textContent = `⏱ ${_formatTime(Date.now() - _totalTimerStartTime)}`;
+    }
   }, 1000);
 }
 
@@ -107,8 +120,11 @@ function stopTimer() {
 
 function resetTimerDisplay() {
   const display = document.getElementById('gemini-timer-display');
-  if (display) display.textContent = '00:00';
+  const totalDisplay = document.getElementById('gemini-total-timer-display');
+  if (display) display.textContent = '🖼 00:00';
+  if (totalDisplay) totalDisplay.textContent = '⏱ 00:00';
   _timerStartTime = null;
+  _totalTimerStartTime = null;
 }
 
 // ========== 日志功能 ==========
@@ -315,3 +331,20 @@ function injectControlUI() {
 
 // ========== 延迟注入 ==========
 setTimeout(injectControlUI, 3000);
+
+// ========== 监听插件图标点击 ==========
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'toggleSidebar') {
+    const sidebar = document.getElementById('gemini-auto-sidebar');
+    const openBtn = document.getElementById('gemini-open-btn');
+    if (!sidebar) return;
+    const isHidden = sidebar.style.transform === 'translateX(100%)';
+    if (isHidden) {
+      sidebar.style.transform = 'translateX(0)';
+      if (openBtn) openBtn.style.display = 'none';
+    } else {
+      sidebar.style.transform = 'translateX(100%)';
+      setTimeout(() => { if (openBtn) openBtn.style.display = 'block'; }, 300);
+    }
+  }
+});

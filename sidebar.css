@@ -263,11 +263,21 @@
 }
 
 /* 计时器 */
-#gemini-timer-display {
+.gemini-timer-group {
+  display: flex;
+  gap: 10px;
+}
+
+#gemini-timer-display,
+#gemini-total-timer-display {
   font-size: 11px;
   color: #8ab4f8;
   font-variant-numeric: tabular-nums;
   font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+#gemini-total-timer-display {
+  color: #FFA726;
 }
 
 /* 启动/停止按钮 */
