@@ -16,7 +16,7 @@ const SIDEBAR_HTML = `
   <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
   <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" />
 
-  <div class="gemini-label">提示词列表（一行一个）</div>
+  <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div>
   <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
@@ -174,6 +174,20 @@ function injectControlUI() {
 
       await runGeminiQueue();
     }
+  };
+
+  // 随机风格按钮
+  const randomBtn = document.getElementById('gemini-random-style-btn');
+  randomBtn.onclick = () => {
+    if (typeof prompts === 'undefined' || !Array.isArray(prompts) || prompts.length === 0) {
+      window._geminiAddLog('❌ 未找到预设风格数据', 'error');
+      return;
+    }
+    // Fisher-Yates 随机取 5 个
+    const shuffled = [...prompts].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, 5);
+    textarea.value = picked.map(p => p.prompt).join('\n');
+    window._geminiAddLog(`🎲 已随机选取 ${picked.length} 个风格: ${picked.map(p => p.style).join(', ')}`, 'info');
   };
 
   // 初始日志

@@ -12,6 +12,7 @@
         "sidebar.css"
       ],
       "js": [
+        "prompts.js",
         "automation.js",
         "sidebar.js"
       ]
