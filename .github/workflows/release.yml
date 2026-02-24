@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Package extension
+        run: |
+          ZIP_NAME="prompt_one_by_one_${GITHUB_REF_NAME}.zip"
+          zip -r "${ZIP_NAME}" \
+            manifest.json \
+            automation.js \
+            sidebar.js \
+            sidebar.css \
+            README.md
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_OUTPUT
+        id: package
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "🎨 ${{ github.ref_name }} — Gemini 批量生图插件"
+          files: ${{ steps.package.outputs.ZIP_NAME }}
+          body: |
+            ## 安装方法 / How to Install
+
+            1. 下载下方 `${{ steps.package.outputs.ZIP_NAME }}` 并解压
+            2. 打开 `chrome://extensions/` → 开启开发者模式
+            3. 点击「加载已解压的扩展程序」选择解压后的文件夹
+            4. 打开 [gemini.google.com](https://gemini.google.com) 即可使用
+
+            ---
+
+            1. Download `${{ steps.package.outputs.ZIP_NAME }}` below and unzip
+            2. Open `chrome://extensions/` → Enable Developer mode
+            3. Click "Load unpacked" and select the folder
+            4. Open [gemini.google.com](https://gemini.google.com) to use

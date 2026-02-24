@@ -1,12 +1,13 @@
 {
   "name": "prompt_one_by_one",
-  "version": "1.0.0",
-  "main": "content.js",
+  "version": "2.0.0",
+  "main": "sidebar.js",
   "scripts": {
+    "release": "echo 'Usage: git tag v2.0.0 && git push origin --tags' && exit 1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "description": ""
+  "license": "MIT",
+  "description": "Gemini 批量生图 Chrome 插件"
 }
