@@ -3,6 +3,44 @@
  * 负责：注入侧边栏 HTML、绑定按钮事件、日志面板、计时器
  */
 
+// ========== 风格中文翻译映射 ==========
+const STYLE_CN_MAP = {
+  'Japanese Ukiyo-e': '日本浮世绘',
+  'Manga': '漫画',
+  'Anime': '动漫',
+  'Watercolor Illustration': '水彩插画',
+  '3D Animation': '3D动画',
+  'Wasteland': '废土',
+  'Retro-futurism': '复古未来主义',
+  'Space Opera': '太空歌剧',
+  'Steampunk': '蒸汽朋克',
+  'Cyberpunk': '赛博朋克',
+  'Oil Painting': '油画',
+  'Ethnic Art': '民族艺术',
+  'Paper Quilling Artwork': '纸卷艺术',
+  'Chinese Ink Painting': '中国水墨画',
+  'Vintage': '复古',
+  'Ivory Carving Artwork': '牙雕艺术',
+  'Stained Glass Artwork': '彩色玻璃艺术',
+  'Clay Artwork': '陶艺',
+  'Origami Artwork': '折纸艺术',
+  'Rangoli': '兰果丽',
+  'Surrealism': '超现实主义',
+  'Abstract Art': '抽象艺术',
+  'Pointillism': '点彩画',
+  'Retro Poster Style': '复古海报',
+  'Minimalist Poster Style': '极简海报',
+  'Sketch Drawing': '素描',
+  'Op Art': '欧普艺术',
+  'Doodle Art': '涂鸦艺术',
+  'Constructivism': '构成主义',
+  'Bauhaus': '包豪斯',
+  'Renaissance': '文艺复兴',
+  'Baroque Period': '巴洛克',
+  'Gothic Art': '哥特艺术',
+  'Victorian Period': '维多利亚时期',
+};
+
 // ========== 侧边栏 HTML 模板 ==========
 const SIDEBAR_HTML = `
   <div class="gemini-sidebar-header">
@@ -16,7 +54,7 @@ const SIDEBAR_HTML = `
   <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
   <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" />
 
-  <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div>
+  <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<div style="display:flex;align-items:center;gap:4px;"><div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div><button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div></div>
   <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
@@ -112,13 +150,26 @@ window._geminiOnQueueEnd = function() {
   // 更新按钮状态
   const btn = document.getElementById('gemini-auto-runner-btn');
   const textarea = document.getElementById('gemini-prompt-input');
+  const progressBar = document.getElementById('gemini-progress-fill');
+  const progressText = document.getElementById('gemini-progress-text');
   if (btn) {
     if (!window._geminiQueueAbort) {
       btn.innerText = '✅ 队列完成';
       btn.className = 'completed';
+      // 3秒后恢复初始状态
+      setTimeout(() => {
+        btn.innerText = '▶ 启动作图队列';
+        btn.className = '';
+        resetTimerDisplay();
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressText) progressText.innerText = '准备就绪: 0 / 0';
+      }, 3000);
     } else {
       btn.innerText = '▶ 启动作图队列';
       btn.className = '';
+      resetTimerDisplay();
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressText) progressText.innerText = '准备就绪: 0 / 0';
     }
     btn.disabled = false;
   }
@@ -176,6 +227,66 @@ function injectControlUI() {
     }
   };
 
+  // ===== 风格多选下拉框 =====
+  const styleSelectBtn = document.getElementById('gemini-style-select-btn');
+  const styleDropdown = document.getElementById('gemini-style-dropdown');
+  const styleSearch = document.getElementById('gemini-style-search');
+  const styleOptions = document.getElementById('gemini-style-options');
+  const styleCount = document.getElementById('gemini-style-count');
+  const selectedStyles = new Set();
+
+  function renderStyleOptions(filter = '') {
+    if (typeof prompts === 'undefined' || !Array.isArray(prompts)) return;
+    styleOptions.innerHTML = '';
+    const filterLower = filter.toLowerCase();
+    prompts.forEach((p, idx) => {
+      const cn = STYLE_CN_MAP[p.style] || '';
+      const label = cn ? `${p.style} (${cn})` : p.style;
+      if (filter && !label.toLowerCase().includes(filterLower) && !p.group.toLowerCase().includes(filterLower)) return;
+      const item = document.createElement('label');
+      item.className = 'gemini-style-option' + (selectedStyles.has(idx) ? ' selected' : '');
+      item.innerHTML = `<input type="checkbox" value="${idx}" ${selectedStyles.has(idx) ? 'checked' : ''} /><span>${label}</span>`;
+      item.querySelector('input').onchange = (e) => {
+        if (e.target.checked) {
+          selectedStyles.add(idx);
+          item.classList.add('selected');
+        } else {
+          selectedStyles.delete(idx);
+          item.classList.remove('selected');
+        }
+        updateStyleCount();
+      };
+      styleOptions.appendChild(item);
+    });
+  }
+
+  function updateStyleCount() {
+    styleCount.textContent = selectedStyles.size > 0 ? `(${selectedStyles.size})` : '';
+  }
+
+  styleSelectBtn.onclick = (e) => {
+    e.stopPropagation();
+    const isVisible = styleDropdown.style.display !== 'none';
+    styleDropdown.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+      renderStyleOptions(styleSearch.value);
+      styleSearch.focus();
+    }
+  };
+
+  styleSearch.oninput = () => {
+    renderStyleOptions(styleSearch.value);
+  };
+
+  styleSearch.onclick = (e) => e.stopPropagation();
+  styleOptions.onclick = (e) => e.stopPropagation();
+  styleDropdown.onclick = (e) => e.stopPropagation();
+
+  // 点击外部关闭下拉框
+  document.addEventListener('click', () => {
+    styleDropdown.style.display = 'none';
+  });
+
   // 随机风格按钮
   const randomBtn = document.getElementById('gemini-random-style-btn');
   randomBtn.onclick = () => {
@@ -183,10 +294,18 @@ function injectControlUI() {
       window._geminiAddLog('❌ 未找到预设风格数据', 'error');
       return;
     }
-    // Fisher-Yates 随机取 5 个
-    const shuffled = [...prompts].sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, 5);
-    textarea.value = picked.map(p => p.prompt).join('\n');
+    // 使用选中的风格，未选则使用全部
+    let pool;
+    if (selectedStyles.size > 0) {
+      pool = [...selectedStyles].map(idx => prompts[idx]);
+    } else {
+      pool = [...prompts];
+    }
+    // Fisher-Yates 随机取 5 个（或 pool 长度）
+    const count = Math.min(5, pool.length);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, count);
+    textarea.value = picked.map(p => p.prompt).join('\n\n');
     window._geminiAddLog(`🎲 已随机选取 ${picked.length} 个风格: ${picked.map(p => p.style).join(', ')}`, 'info');
   };
 

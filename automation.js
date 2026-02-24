@@ -179,7 +179,7 @@ async function runGeminiQueue() {
     }
 
     // 组合完整提示词
-    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join(' ');
+    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join('\n');
 
     window._geminiAddLog(`▶ 任务 ${i + 1}/${prompts.length} 开始`, 'info');
 
@@ -218,12 +218,13 @@ async function runGeminiQueue() {
     if (i < prompts.length - 1 && !window._geminiQueueAbort) {
       const delay = Math.floor(Math.random() * (GEMINI_CONFIG.maxDelay - GEMINI_CONFIG.minDelay + 1)) + GEMINI_CONFIG.minDelay;
       window._geminiAddLog(`⏸ 冷却 ${(delay / 1000).toFixed(1)}s...`, 'info');
-      progressText.innerText = `冷却中... ${i + 1} / ${prompts.length}`;
 
-      // 分段 sleep 以便及时响应中止
+      // 分段 sleep 以便及时响应中止，同时显示倒计时
       const sliceMs = 500;
       let waited = 0;
       while (waited < delay && !window._geminiQueueAbort) {
+        const remaining = Math.max(0, (delay - waited) / 1000);
+        progressText.innerText = `冷却中 ${remaining.toFixed(1)}s | ${i + 1} / ${prompts.length}`;
         await sleep(Math.min(sliceMs, delay - waited));
         waited += sliceMs;
       }

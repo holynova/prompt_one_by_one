@@ -64,6 +64,95 @@
   color: #aecbfa;
 }
 
+/* 风格多选下拉框 */
+.gemini-style-select-wrapper {
+  position: relative;
+}
+
+.gemini-style-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 280px;
+  max-height: 320px;
+  background: #1e1e3a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 10;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gemini-style-search {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.gemini-style-search::placeholder {
+  color: #666;
+}
+.gemini-style-search:focus {
+  background: rgba(255,255,255,0.08);
+}
+
+.gemini-style-options {
+  overflow-y: auto;
+  max-height: 260px;
+  padding: 4px 0;
+}
+.gemini-style-options::-webkit-scrollbar {
+  width: 4px;
+}
+.gemini-style-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gemini-style-options::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+.gemini-style-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #ccc;
+  transition: background 0.15s;
+  user-select: none;
+}
+.gemini-style-option:hover {
+  background: rgba(255,255,255,0.06);
+}
+.gemini-style-option.selected {
+  background: rgba(66, 133, 244, 0.12);
+  color: #8ab4f8;
+}
+
+.gemini-style-option input[type="checkbox"] {
+  accent-color: #4285f4;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.gemini-style-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gemini-collapse-btn {
   border: none;
   background: rgba(255,255,255,0.06);
