@@ -21,6 +21,14 @@
   transition: transform 0.3s ease;
   transform: translateX(0);
   color: #e0e0e0;
+  overflow-y: auto;
+}
+
+/* 页面内容缩进，不被侧边栏遮挡 */
+html.gemini-sidebar-open {
+  width: calc(100% - 340px) !important;
+  overflow-x: hidden !important;
+  transition: width 0.3s ease;
 }
 
 /* 头部区域 */
@@ -250,34 +258,40 @@
   border-radius: 4px;
 }
 
-.gemini-progress-info {
+/* ===== 任务看板 ===== */
+.gemini-dashboard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.gemini-dashboard-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 5px;
+  padding: 4px 0;
 }
-
-#gemini-progress-text {
-  font-size: 11px;
-  color: #888;
+.gemini-dashboard-row + .gemini-dashboard-row {
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
-
-/* 计时器 */
-.gemini-timer-group {
-  display: flex;
-  gap: 10px;
+.gemini-dashboard-label {
+  font-size: 12px;
+  color: #aaa;
 }
-
-#gemini-timer-display,
-#gemini-total-timer-display {
-  font-size: 11px;
-  color: #8ab4f8;
+.gemini-dashboard-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e0e0e0;
   font-variant-numeric: tabular-nums;
   font-family: 'SF Mono', 'Consolas', monospace;
 }
+.gemini-dash-blue { color: #8ab4f8; }
+.gemini-dash-orange { color: #FFA726; }
 
-#gemini-total-timer-display {
-  color: #FFA726;
+.gemini-dashboard .gemini-progress-bg {
+  margin-top: 8px;
 }
 
 /* 启动/停止按钮 */
@@ -391,4 +405,169 @@
 #gemini-open-btn:hover {
   filter: brightness(1.1);
   padding-right: 18px;
+}
+
+/* ===== Tab 切换 ===== */
+.gemini-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #444;
+}
+.gemini-tab {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  background: #2a2a2a;
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.gemini-tab:hover {
+  background: #333;
+  color: #ccc;
+}
+.gemini-tab.active {
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+  color: #fff;
+}
+
+/* Tab 内容区 */
+.gemini-tab-content {
+  display: none;
+}
+.gemini-tab-content.active {
+  display: block;
+}
+
+/* ===== 图片上传区 ===== */
+.gemini-image-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gemini-image-select-btn {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s;
+  white-space: nowrap;
+}
+.gemini-image-select-btn:hover {
+  filter: brightness(1.15);
+}
+.gemini-image-count {
+  font-size: 11px;
+  color: #999;
+}
+
+/* 图片预览网格 */
+.gemini-image-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.gemini-image-preview-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #444;
+  background: #222;
+}
+.gemini-image-preview-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.gemini-image-name {
+  display: block;
+  font-size: 9px;
+  color: #aaa;
+  text-align: center;
+  padding: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gemini-image-del-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background: rgba(229, 57, 53, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.gemini-image-preview-item:hover .gemini-image-del-btn {
+  opacity: 1;
+}
+
+/* 图片转换按钮（复用 auto-runner-btn 样式） */
+#gemini-image-runner-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+#gemini-image-runner-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+#gemini-image-runner-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+#gemini-image-runner-btn.completed {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+}
+
+/* 图片转换提示词 textarea */
+.gemini-image-prompt-textarea {
+  width: 100%;
+  min-height: 80px;
+  max-height: 160px;
+  resize: vertical;
+  background-color: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.gemini-image-prompt-textarea:focus {
+  outline: none;
+  border-color: #1e88e5;
 }

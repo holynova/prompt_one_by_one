@@ -51,31 +51,65 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
-  <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
-  <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
+  <div class="gemini-tabs">
+    <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
+    <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
+  </div>
 
-  <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<div style="display:flex;align-items:center;gap:4px;"><div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div><button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div></div>
-  <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
+  <!-- ===== Tab 1: 文本生图 ===== -->
+  <div class="gemini-tab-content active" id="gemini-tab-text">
+    <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
+    <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
+
+    <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<div style="display:flex;align-items:center;gap:4px;"><div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div><button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div></div>
+    <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
 
-  <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
-  <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
+    <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
+    <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
 
-  <div class="gemini-progress-container">
+    <button id="gemini-auto-runner-btn">▶ 启动作图队列</button>
+  </div>
+
+  <!-- ===== Tab 2: 图片转换 ===== -->
+  <div class="gemini-tab-content" id="gemini-tab-image">
+    <div class="gemini-label">选择图片（支持多选）</div>
+    <div class="gemini-image-upload-area" id="gemini-image-upload-area">
+      <input type="file" id="gemini-image-file-input" multiple accept="image/*" style="display:none;" />
+      <button id="gemini-image-select-btn" class="gemini-image-select-btn">📂 选择图片文件</button>
+      <span id="gemini-image-count" class="gemini-image-count">未选择文件</span>
+    </div>
+
+    <div id="gemini-image-preview" class="gemini-image-preview"></div>
+
+    <div class="gemini-label">转换提示词（所有图片共用）</div>
+    <textarea id="gemini-image-prompt" class="gemini-image-prompt-textarea" placeholder="例如：将这张图片转换为吉卜力风格">将上面这一张图转成真人照片风格, 照相机拍出来的风格
+1. 保持原图的构图, 布局, 尺寸
+2. 保持原图中人物的发型, 衣着风格
+3. 图中全部人物都要转换
+4. 不是绘画风格, 不是动漫风格</textarea>
+
+    <button id="gemini-image-runner-btn">▶ 启动图片转换队列</button>
+  </div>
+
+  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none;">
+    <div class="gemini-dashboard-row">
+      <span class="gemini-dashboard-label">📋 任务进度</span>
+      <span id="gemini-dash-progress" class="gemini-dashboard-value">0 / 0</span>
+    </div>
+    <div class="gemini-dashboard-row">
+      <span class="gemini-dashboard-label">🖼 当前耗时</span>
+      <span id="gemini-dash-current" class="gemini-dashboard-value gemini-dash-blue">00:00</span>
+    </div>
+    <div class="gemini-dashboard-row">
+      <span class="gemini-dashboard-label">⏱ 总计耗时</span>
+      <span id="gemini-dash-total" class="gemini-dashboard-value gemini-dash-orange">00:00</span>
+    </div>
     <div class="gemini-progress-bg">
       <div id="gemini-progress-fill"></div>
     </div>
-    <div class="gemini-progress-info">
-      <span id="gemini-progress-text">准备就绪: 0 / 0</span>
-      <div class="gemini-timer-group">
-        <span id="gemini-timer-display" title="当前图片耗时">🖼 00:00</span>
-        <span id="gemini-total-timer-display" title="总任务耗时">⏱ 00:00</span>
-      </div>
-    </div>
   </div>
-
-  <button id="gemini-auto-runner-btn">▶ 启动作图队列</button>
 
   <div class="gemini-log-container">
     <div class="gemini-label">运行日志</div>
@@ -98,15 +132,20 @@ function _formatTime(ms) {
 function startTimer() {
   _timerStartTime = Date.now();
   _totalTimerStartTime = Date.now();
-  const display = document.getElementById('gemini-timer-display');
-  const totalDisplay = document.getElementById('gemini-total-timer-display');
+
+  const dashboard = document.getElementById('gemini-dashboard');
+  const currentDisplay = document.getElementById('gemini-dash-current');
+  const totalDisplay = document.getElementById('gemini-dash-total');
+
+  if (dashboard) dashboard.style.display = '';
+
   if (_timerInterval) clearInterval(_timerInterval);
   _timerInterval = setInterval(() => {
-    if (_timerStartTime) {
-      display.textContent = `🖼 ${_formatTime(Date.now() - _timerStartTime)}`;
+    if (_timerStartTime && currentDisplay) {
+      currentDisplay.textContent = _formatTime(Date.now() - _timerStartTime);
     }
-    if (_totalTimerStartTime) {
-      totalDisplay.textContent = `⏱ ${_formatTime(Date.now() - _totalTimerStartTime)}`;
+    if (_totalTimerStartTime && totalDisplay) {
+      totalDisplay.textContent = _formatTime(Date.now() - _totalTimerStartTime);
     }
   }, 1000);
 }
@@ -119,13 +158,22 @@ function stopTimer() {
 }
 
 function resetTimerDisplay() {
-  const display = document.getElementById('gemini-timer-display');
-  const totalDisplay = document.getElementById('gemini-total-timer-display');
-  if (display) display.textContent = '🖼 00:00';
-  if (totalDisplay) totalDisplay.textContent = '⏱ 00:00';
+  const currentDisplay = document.getElementById('gemini-dash-current');
+  const totalDisplay = document.getElementById('gemini-dash-total');
+  const progressDisplay = document.getElementById('gemini-dash-progress');
+  if (currentDisplay) currentDisplay.textContent = '00:00';
+  if (totalDisplay) totalDisplay.textContent = '00:00';
+  if (progressDisplay) progressDisplay.textContent = '0 / 0';
   _timerStartTime = null;
   _totalTimerStartTime = null;
 }
+
+// 更新看板进度
+window._updateDashboardProgress = function(current, total) {
+  const el = document.getElementById('gemini-dash-progress');
+  if (el) el.textContent = `${current} / ${total}`;
+};
+
 
 // ========== 日志功能 ==========
 window._geminiAddLog = function(message, type = 'info') {
@@ -163,34 +211,56 @@ window._geminiOnPromptStart = function() {
 
 window._geminiOnQueueEnd = function() {
   stopTimer();
-  // 更新按钮状态
   const btn = document.getElementById('gemini-auto-runner-btn');
+  const imageBtn = document.getElementById('gemini-image-runner-btn');
   const textarea = document.getElementById('gemini-prompt-input');
   const progressBar = document.getElementById('gemini-progress-fill');
   const progressText = document.getElementById('gemini-progress-text');
+
+  const resetAll = () => {
+    resetTimerDisplay();
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.innerText = '准备就绪: 0 / 0';
+  };
+
+  // 重置文本队列按钮
   if (btn) {
     if (!window._geminiQueueAbort) {
       btn.innerText = '✅ 队列完成';
       btn.className = 'completed';
-      // 3秒后恢复初始状态
       setTimeout(() => {
         btn.innerText = '▶ 启动作图队列';
         btn.className = '';
         btn.style.background = '';
-        resetTimerDisplay();``
-        if (progressBar) progressBar.style.width = '0%';
-        if (progressText) progressText.innerText = '准备就绪: 0 / 0';
+        resetAll();
       }, 3000);
     } else {
       btn.innerText = '▶ 启动作图队列';
       btn.className = '';
       btn.style.background = '';
-      resetTimerDisplay();
-      if (progressBar) progressBar.style.width = '0%';
-      if (progressText) progressText.innerText = '准备就绪: 0 / 0';
+      resetAll();
     }
     btn.disabled = false;
   }
+
+  // 重置图片队列按钮
+  if (imageBtn) {
+    if (!window._geminiQueueAbort) {
+      imageBtn.innerText = '✅ 队列完成';
+      imageBtn.className = 'completed';
+      setTimeout(() => {
+        imageBtn.innerText = '▶ 启动图片转换队列';
+        imageBtn.className = '';
+        imageBtn.style.background = '';
+      }, 3000);
+    } else {
+      imageBtn.innerText = '▶ 启动图片转换队列';
+      imageBtn.className = '';
+      imageBtn.style.background = '';
+    }
+    imageBtn.disabled = false;
+  }
+
   if (textarea) textarea.disabled = false;
 };
 
@@ -203,6 +273,7 @@ function injectControlUI() {
   sidebar.id = 'gemini-auto-sidebar';
   sidebar.innerHTML = SIDEBAR_HTML;
   document.body.appendChild(sidebar);
+  document.documentElement.classList.add('gemini-sidebar-open');
 
   // 创建展开按钮
   const openBtn = document.createElement('button');
@@ -216,32 +287,111 @@ function injectControlUI() {
   const collapseBtn = document.getElementById('gemini-collapse-btn');
   collapseBtn.onclick = () => {
     sidebar.style.transform = 'translateX(100%)';
+    document.documentElement.classList.remove('gemini-sidebar-open');
     setTimeout(() => { openBtn.style.display = 'block'; }, 300);
   };
   openBtn.onclick = () => {
     openBtn.style.display = 'none';
     sidebar.style.transform = 'translateX(0)';
+    document.documentElement.classList.add('gemini-sidebar-open');
   };
 
-  // 启动/停止按钮
+  // ===== Tab 切换 =====
+  const tabs = sidebar.querySelectorAll('.gemini-tab');
+  const tabContents = sidebar.querySelectorAll('.gemini-tab-content');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      if (window._geminiIsRunning) return; // 运行中不允许切换
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const target = sidebar.querySelector(`#gemini-tab-${tab.dataset.tab}`);
+      if (target) target.classList.add('active');
+    };
+  });
+
+  // ===== 文本生图 启动/停止按钮 =====
   const btn = document.getElementById('gemini-auto-runner-btn');
   const textarea = document.getElementById('gemini-prompt-input');
 
   btn.onclick = async () => {
     if (window._geminiIsRunning) {
-      // ===== 停止队列 =====
       window._geminiQueueAbort = true;
       btn.innerText = '⏳ 正在停止...';
       btn.disabled = true;
       window._geminiAddLog('⏹ 用户请求停止队列...', 'warn');
     } else {
-      // ===== 启动队列 =====
       btn.innerText = '⏹ 停止队列';
       btn.className = 'running';
       textarea.disabled = true;
       resetTimerDisplay();
-
       await runGeminiQueue();
+    }
+  };
+
+  // ===== 图片转换：文件选择 =====
+  window._imageQueueFiles = [];
+  const fileInput = document.getElementById('gemini-image-file-input');
+  const selectBtn = document.getElementById('gemini-image-select-btn');
+  const imageCount = document.getElementById('gemini-image-count');
+  const imagePreview = document.getElementById('gemini-image-preview');
+
+  selectBtn.onclick = () => fileInput.click();
+
+  fileInput.onchange = () => {
+    const files = Array.from(fileInput.files);
+    window._imageQueueFiles = files;
+    imageCount.textContent = files.length > 0 ? `已选择 ${files.length} 张图片` : '未选择文件';
+
+    // 渲染预览
+    imagePreview.innerHTML = '';
+    files.forEach((file, idx) => {
+      const item = document.createElement('div');
+      item.className = 'gemini-image-preview-item';
+
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.title = file.name;
+
+      const name = document.createElement('span');
+      name.className = 'gemini-image-name';
+      name.textContent = file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'gemini-image-del-btn';
+      delBtn.textContent = '×';
+      delBtn.title = '移除';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        window._imageQueueFiles.splice(idx, 1);
+        // 重新触发渲染
+        const dt = new DataTransfer();
+        window._imageQueueFiles.forEach(f => dt.items.add(f));
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event('change'));
+      };
+
+      item.appendChild(img);
+      item.appendChild(name);
+      item.appendChild(delBtn);
+      imagePreview.appendChild(item);
+    });
+  };
+
+  // ===== 图片转换 启动/停止按钮 =====
+  const imageRunBtn = document.getElementById('gemini-image-runner-btn');
+
+  imageRunBtn.onclick = async () => {
+    if (window._geminiIsRunning) {
+      window._geminiQueueAbort = true;
+      imageRunBtn.innerText = '⏳ 正在停止...';
+      imageRunBtn.disabled = true;
+      window._geminiAddLog('⏹ 用户请求停止队列...', 'warn');
+    } else {
+      imageRunBtn.innerText = '⏹ 停止队列';
+      imageRunBtn.className = 'running';
+      resetTimerDisplay();
+      await runImageQueue();
     }
   };
 
@@ -344,9 +494,11 @@ chrome.runtime.onMessage.addListener((message) => {
     const isHidden = sidebar.style.transform === 'translateX(100%)';
     if (isHidden) {
       sidebar.style.transform = 'translateX(0)';
+      document.body.classList.add('gemini-sidebar-open');
       if (openBtn) openBtn.style.display = 'none';
     } else {
       sidebar.style.transform = 'translateX(100%)';
+      document.body.classList.remove('gemini-sidebar-open');
       setTimeout(() => { if (openBtn) openBtn.style.display = 'block'; }, 300);
     }
   }

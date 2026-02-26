@@ -21,6 +21,8 @@ const SITE_CONFIGS = {
     inputSelector: 'div[contenteditable="true"], textarea',
     sendButtonSelector: 'button[aria-label*="发送"], button[aria-label*="Send"], .send-button-class',
     failKeywords: ['无法生成', '请重试', '安全限制'],
+    fileInputSelector: 'input[type="file"]',
+    uploadButtonSelector: 'button[aria-label*="上传"], button[aria-label*="Upload"], button[aria-label*="image"], button[aria-label*="图片"]',
   },
   chatgpt: {
     name: 'ChatGPT',
@@ -28,6 +30,8 @@ const SITE_CONFIGS = {
     inputSelector: '#prompt-textarea, div.ProseMirror[contenteditable="true"], div[contenteditable="true"]',
     sendButtonSelector: 'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="发送"]',
     failKeywords: ['unable to generate', 'content policy', '无法生成'],
+    fileInputSelector: 'input[type="file"]',
+    uploadButtonSelector: 'button[aria-label*="Attach"], button[aria-label*="附件"], button[aria-label*="Upload"]',
   },
   grok: {
     name: 'Grok',
@@ -35,6 +39,8 @@ const SITE_CONFIGS = {
     inputSelector: 'textarea, div[contenteditable="true"]',
     sendButtonSelector: 'button[aria-label*="Send"], button[aria-label*="submit"], button[type="submit"]',
     failKeywords: ['unable to generate', 'content policy', '无法生成'],
+    fileInputSelector: 'input[type="file"]',
+    uploadButtonSelector: 'button[aria-label*="Attach"], button[aria-label*="Upload"]',
   },
 };
 
@@ -129,6 +135,9 @@ function _getExistingImageSrcs() {
 
 // --- Gemini / Grok: MutationObserver 方式 ---
 function startObserverDefault(site) {
+  // 快照当前所有图片 src，避免把上传预览误判为生成结果
+  const existingImgSrcs = _getExistingImageSrcs();
+
   return new Promise((resolve) => {
     window._geminiAddLog(`开启监听，等待生成结果 (超时: ${QUEUE_CONFIG.timeoutMs / 1000}s)...`, 'info');
 
@@ -153,9 +162,12 @@ function startObserverDefault(site) {
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const images = node.querySelectorAll ? node.querySelectorAll('img') : [];
-              const generatedImages = Array.from(images).filter(img => img.src && !img.src.includes('avatar'));
+              // 只计算 src 不在快照中的真正新图片
+              const newImages = Array.from(images).filter(img =>
+                img.src && !img.src.includes('avatar') && !existingImgSrcs.has(img.src)
+              );
 
-              if (generatedImages.length > 0) {
+              if (newImages.length > 0) {
                 isGenerating = false;
                 observer.disconnect();
                 clearTimeout(checkTimeout);
@@ -316,10 +328,9 @@ async function runGeminiQueue() {
 
   // 获取 UI 元素
   const progressBar = document.getElementById('gemini-progress-fill');
-  const progressText = document.getElementById('gemini-progress-text');
 
   progressBar.style.width = '0%';
-  progressText.innerText = `准备就绪: 0 / ${prompts.length}`;
+  if (window._updateDashboardProgress) window._updateDashboardProgress(0, prompts.length);
 
   // 重置中止标记
   window._geminiQueueAbort = false;
@@ -348,7 +359,7 @@ async function runGeminiQueue() {
 
     // 更新进度条
     progressBar.style.width = `${(i / prompts.length) * 100}%`;
-    progressText.innerText = `正在执行: ${i + 1} / ${prompts.length}`;
+    if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, prompts.length);
 
     // 通知 sidebar 重置单任务计时
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
@@ -388,7 +399,7 @@ async function runGeminiQueue() {
       // 以 1 秒为周期倒计时
       for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
         const progress = ((totalSec - sec) / totalSec) * 100;
-        progressText.innerText = `冷却中 ${sec}s | ${i + 1} / ${prompts.length}`;
+        if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, prompts.length);
         if (btn) {
           btn.innerText = `⏸ 冷却 ${sec}s`;
           btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
@@ -407,12 +418,183 @@ async function runGeminiQueue() {
 
   if (!window._geminiQueueAbort) {
     progressBar.style.width = '100%';
-    progressText.innerText = `队列完成: ${prompts.length} / ${prompts.length}`;
+    if (window._updateDashboardProgress) window._updateDashboardProgress(prompts.length, prompts.length);
     window._geminiAddLog(`🎉 全部完成！总耗时 ${formatElapsed(totalElapsed)}`, 'success');
   }
 
   window._geminiIsRunning = false;
 
   // 通知 sidebar 停止计时
+  if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
+}
+
+// ========== 图片上传（剪贴板粘贴方式） ==========
+async function uploadImageToSite(file) {
+  const site = getSiteConfig();
+  window._geminiAddLog(`[${site.name}] 正在粘贴图片: ${file.name}`, 'info');
+
+  // 找到输入区域
+  let inputBox = document.querySelector(site.inputSelector);
+  if (!inputBox) {
+    await sleep(1000);
+    inputBox = document.querySelector(site.inputSelector);
+  }
+  if (!inputBox) {
+    window._geminiAddLog('❌ 未找到输入框，无法粘贴图片！', 'error');
+    return false;
+  }
+
+  inputBox.focus();
+  await sleep(300);
+
+  // 构造 ClipboardEvent 模拟粘贴
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+
+  const pasteEvent = new ClipboardEvent('paste', {
+    bubbles: true,
+    cancelable: true,
+    clipboardData: dataTransfer,
+  });
+
+  inputBox.dispatchEvent(pasteEvent);
+  window._geminiAddLog('已模拟粘贴，等待上传确认...', 'info');
+  return true;
+}
+
+// 等待图片上传完成（固定延时，等待 loading → 预览完成）
+async function waitForUploadComplete(delayMs = 10000) {
+  window._geminiAddLog(`等待图片上传完成 (${delayMs / 1000}s)...`, 'info');
+  const step = 500;
+  let waited = 0;
+  while (waited < delayMs) {
+    if (window._geminiQueueAbort) return 'aborted';
+    await sleep(step);
+    waited += step;
+  }
+  window._geminiAddLog('✅ 图片上传等待完成', 'info');
+  return 'success';
+}
+
+// ========== 图片转换队列 ==========
+async function runImageQueue() {
+  const files = window._imageQueueFiles || [];
+  const prompt = (document.getElementById('gemini-image-prompt')?.value || '').trim();
+
+  if (files.length === 0) {
+    window._geminiAddLog('⚠️ 请先选择图片！', 'warn');
+    return;
+  }
+  if (!prompt) {
+    window._geminiAddLog('⚠️ 请输入转换提示词！', 'warn');
+    return;
+  }
+
+  const progressBar = document.getElementById('gemini-progress-fill');
+
+  progressBar.style.width = '0%';
+  if (window._updateDashboardProgress) window._updateDashboardProgress(0, files.length);
+
+  window._geminiQueueAbort = false;
+  window._geminiIsRunning = true;
+
+  const queueStartTime = Date.now();
+  const site = getSiteConfig();
+  window._geminiAddLog(`🖼 [${site.name}] 图片转换队列启动，共 ${files.length} 张`, 'success');
+  window._geminiAddLog(`提示词: "${prompt}"`, 'info');
+
+  if (window._geminiOnQueueStart) window._geminiOnQueueStart();
+
+  for (let i = 0; i < files.length; i++) {
+    if (window._geminiQueueAbort) {
+      window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${files.length})`, 'warn');
+      break;
+    }
+
+    const file = files[i];
+    window._geminiAddLog(`▶ 任务 ${i + 1}/${files.length}: ${file.name}`, 'info');
+
+    progressBar.style.width = `${(i / files.length) * 100}%`;
+    if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, files.length);
+
+    if (window._geminiOnPromptStart) window._geminiOnPromptStart();
+
+    const promptStartTime = Date.now();
+
+    // 第一步：上传图片
+    const uploadOk = await uploadImageToSite(file);
+    if (!uploadOk) {
+      window._geminiAddLog(`❌ 任务 ${i + 1}: 上传失败，跳过`, 'error');
+      continue;
+    }
+
+    // 第二步：等待上传完成
+    const uploadResult = await waitForUploadComplete();
+    if (uploadResult === 'aborted') {
+      window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${files.length})`, 'warn');
+      break;
+    }
+
+    await sleep(500);
+
+    // 第三步：输入提示词
+    const inputSuccess = await executeInput(prompt);
+
+    if (inputSuccess) {
+      // 第四步：等待生成完成
+      await sleep(1000);
+      const result = await startObserver();
+      const elapsed = Date.now() - promptStartTime;
+
+      if (result === 'aborted') {
+        window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${files.length})`, 'warn');
+        break;
+      }
+
+      const statusMap = {
+        success: { icon: '✅', text: '生成成功', type: 'success' },
+        failed: { icon: '⚠️', text: '生成失败', type: 'warn' },
+        timeout: { icon: '⏰', text: '生成超时', type: 'warn' },
+      };
+      const info = statusMap[result] || { icon: '❓', text: '未知状态', type: 'info' };
+      window._geminiAddLog(`${info.icon} 任务 ${i + 1} (${file.name}): ${info.text} (耗时 ${formatElapsed(elapsed)})`, info.type);
+    } else {
+      window._geminiAddLog(`❌ 任务 ${i + 1}: 输入失败，跳过`, 'error');
+    }
+
+    // 冷却
+    if (i < files.length - 1 && !window._geminiQueueAbort) {
+      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
+      const totalSec = Math.ceil(delay / 1000);
+      window._geminiAddLog(`⏸ 冷却 ${totalSec}s...`, 'info');
+
+      const btn = document.getElementById('gemini-image-runner-btn');
+
+      for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
+        const progress = ((totalSec - sec) / totalSec) * 100;
+        if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, files.length);
+        if (btn) {
+          btn.innerText = `⏸ 冷却 ${sec}s`;
+          btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
+        }
+        await sleep(1000);
+      }
+      if (btn && !window._geminiQueueAbort) {
+        btn.innerText = '⏹ 停止队列';
+        btn.style.background = '';
+      }
+    }
+  }
+
+  const totalElapsed = Date.now() - queueStartTime;
+
+  if (!window._geminiQueueAbort) {
+    progressBar.style.width = '100%';
+    if (window._updateDashboardProgress) window._updateDashboardProgress(files.length, files.length);
+    window._geminiAddLog(`🎉 图片转换全部完成！总耗时 ${formatElapsed(totalElapsed)}`, 'success');
+  }
+
+  window._geminiIsRunning = false;
+
   if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
 }
