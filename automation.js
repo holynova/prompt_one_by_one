@@ -1,6 +1,7 @@
 /**
  * automation.js — 核心自动化逻辑
  * 负责：发送提示词、监听图片生成、队列执行
+ * 支持：Gemini、ChatGPT、Grok
  */
 
 // ========== 全局状态 ==========
@@ -12,35 +13,88 @@ window._geminiAddLog = window._geminiAddLog || function(msg, type) {
   console.log(`[LOG][${type || 'info'}] ${msg}`);
 };
 
-// ========== 配置 ==========
-const GEMINI_CONFIG = {
+// ========== 多站点配置 ==========
+const SITE_CONFIGS = {
+  gemini: {
+    name: 'Gemini',
+    urlPattern: /gemini\.google\.com/,
+    inputSelector: 'div[contenteditable="true"], textarea',
+    sendButtonSelector: 'button[aria-label*="发送"], button[aria-label*="Send"], .send-button-class',
+    failKeywords: ['无法生成', '请重试', '安全限制'],
+  },
+  chatgpt: {
+    name: 'ChatGPT',
+    urlPattern: /chat(gpt)?\.openai\.com|chatgpt\.com/,
+    inputSelector: '#prompt-textarea, div.ProseMirror[contenteditable="true"], div[contenteditable="true"]',
+    sendButtonSelector: 'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="发送"]',
+    failKeywords: ['unable to generate', 'content policy', '无法生成'],
+  },
+  grok: {
+    name: 'Grok',
+    urlPattern: /grok\.com/,
+    inputSelector: 'textarea, div[contenteditable="true"]',
+    sendButtonSelector: 'button[aria-label*="Send"], button[aria-label*="submit"], button[type="submit"]',
+    failKeywords: ['unable to generate', 'content policy', '无法生成'],
+  },
+};
+
+// 通用配置
+const QUEUE_CONFIG = {
   minDelay: 5000,
   maxDelay: 15000,
   timeoutMs: 60000,
-  inputSelector: 'div[contenteditable="true"], textarea',
-  sendButtonSelector: 'button[aria-label*="发送"], button[aria-label*="Send"], .send-button-class',
 };
+
+function getSiteConfig() {
+  const url = window.location.href;
+  for (const [key, config] of Object.entries(SITE_CONFIGS)) {
+    if (config.urlPattern.test(url)) {
+      return config;
+    }
+  }
+  // 默认回退到 Gemini 配置
+  return SITE_CONFIGS.gemini;
+}
 
 // ========== 工具函数 ==========
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function simulateInput(element, text) {
   element.focus();
+
   if (element.isContentEditable) {
-    element.textContent = text;
+    // 清空并插入文本（兼容 ProseMirror 等富文本编辑器）
+    element.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = text;
+    element.appendChild(p);
   } else {
-    element.value = text;
+    // 原生 textarea
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype, 'value'
+    )?.set;
+    if (nativeSetter) {
+      nativeSetter.call(element, text);
+    } else {
+      element.value = text;
+    }
   }
   element.dispatchEvent(new Event('input', { bubbles: true }));
   element.dispatchEvent(new Event('change', { bubbles: true }));
-  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true, cancelable: true }));
 }
 
 // ========== 执行输入 ==========
 async function executeInput(promptText) {
-  window._geminiAddLog('正在寻找输入框...', 'info');
-  let inputBox = document.querySelector(GEMINI_CONFIG.inputSelector);
+  const site = getSiteConfig();
+  window._geminiAddLog(`[${site.name}] 正在寻找输入框...`, 'info');
+
+  let inputBox = document.querySelector(site.inputSelector);
+
+  if (!inputBox) {
+    // 重试一次，等待动态渲染
+    await sleep(1000);
+    inputBox = document.querySelector(site.inputSelector);
+  }
 
   if (!inputBox) {
     window._geminiAddLog('❌ 未找到输入框！', 'error');
@@ -49,9 +103,9 @@ async function executeInput(promptText) {
 
   window._geminiAddLog(`填入提示词: "${promptText.substring(0, 40)}${promptText.length > 40 ? '...' : ''}"`, 'info');
   simulateInput(inputBox, promptText);
-  await sleep(500);
+  await sleep(800);
 
-  let sendBtn = document.querySelector(GEMINI_CONFIG.sendButtonSelector);
+  let sendBtn = document.querySelector(site.sendButtonSelector);
   if (sendBtn) {
     window._geminiAddLog('点击发送按钮', 'info');
     sendBtn.click();
@@ -66,9 +120,17 @@ async function executeInput(promptText) {
 }
 
 // ========== 监听生成结果 ==========
-function startObserver() {
+
+// 获取页面上回复前的图片快照（用于对比新增）
+function _getExistingImageSrcs() {
+  const imgs = document.querySelectorAll('img');
+  return new Set(Array.from(imgs).map(img => img.src).filter(Boolean));
+}
+
+// --- Gemini / Grok: MutationObserver 方式 ---
+function startObserverDefault(site) {
   return new Promise((resolve) => {
-    window._geminiAddLog(`开启监听，等待生成结果 (超时: ${GEMINI_CONFIG.timeoutMs / 1000}s)...`, 'info');
+    window._geminiAddLog(`开启监听，等待生成结果 (超时: ${QUEUE_CONFIG.timeoutMs / 1000}s)...`, 'info');
 
     const targetNode = document.body;
     const config = { childList: true, subtree: true, characterData: true };
@@ -78,7 +140,6 @@ function startObserver() {
     const callback = function(mutationsList, observer) {
       if (!isGenerating) return;
 
-      // 检查是否被中止
       if (window._geminiQueueAbort) {
         isGenerating = false;
         observer.disconnect();
@@ -103,7 +164,7 @@ function startObserver() {
               }
 
               const textContent = node.textContent || "";
-              if (textContent.includes("无法生成") || textContent.includes("请重试") || textContent.includes("安全限制")) {
+              if (site.failKeywords.some(kw => textContent.includes(kw))) {
                 isGenerating = false;
                 observer.disconnect();
                 clearTimeout(checkTimeout);
@@ -125,8 +186,109 @@ function startObserver() {
         observer.disconnect();
         resolve('timeout');
       }
-    }, GEMINI_CONFIG.timeoutMs);
+    }, QUEUE_CONFIG.timeoutMs);
   });
+}
+
+// --- ChatGPT: 组合检测（DOM 稳定性 + 轮询 img） ---
+function startObserverChatGPT(site) {
+  return new Promise((resolve) => {
+    window._geminiAddLog(`[ChatGPT] 开启组合检测 (轮询img + DOM稳定性)...`, 'info');
+
+    const beforeImgSrcs = _getExistingImageSrcs();
+    let resolved = false;
+    let lastMutationTime = Date.now();
+    let mutationStarted = false; // AI 是否已开始回复（首次 DOM 变化）
+    const DOM_STABLE_THRESHOLD = 5000; // DOM 连续 5 秒无变化视为完成
+
+    function done(result) {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearInterval(pollInterval);
+      clearTimeout(globalTimeout);
+      resolve(result);
+    }
+
+    // 方法 1: MutationObserver 跟踪 DOM 变化时间
+    const observer = new MutationObserver((mutations) => {
+      if (resolved) return;
+
+      if (window._geminiQueueAbort) {
+        done('aborted');
+        return;
+      }
+
+      lastMutationTime = Date.now();
+      mutationStarted = true;
+
+      // 检查失败关键词
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const text = node.textContent || '';
+              if (site.failKeywords.some(kw => text.includes(kw))) {
+                window._geminiAddLog('检测到失败关键词', 'warn');
+                done('failed');
+              }
+            }
+          });
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true, subtree: true, characterData: true, attributes: true
+    });
+
+    // 方法 2: 每秒轮询检查新增图片 + DOM 稳定性
+    const pollInterval = setInterval(() => {
+      if (resolved) return;
+
+      if (window._geminiQueueAbort) {
+        done('aborted');
+        return;
+      }
+
+      // 检查新图片
+      const currentImgs = document.querySelectorAll('img');
+      for (const img of currentImgs) {
+        if (img.src && !beforeImgSrcs.has(img.src) && !img.src.includes('avatar') && !img.src.includes('data:image/svg')) {
+          window._geminiAddLog('轮询检测到新图片', 'info');
+          done('success');
+          return;
+        }
+      }
+
+      // DOM 稳定性检测：AI 开始回复后，连续 N 秒无 DOM 变化
+      if (mutationStarted) {
+        const silentMs = Date.now() - lastMutationTime;
+        if (silentMs >= DOM_STABLE_THRESHOLD) {
+          window._geminiAddLog(`DOM 已稳定 ${(silentMs / 1000).toFixed(1)}s，判定生成完成`, 'info');
+          done('success');
+          return;
+        }
+      }
+    }, 1000);
+
+    // 全局超时
+    const globalTimeout = setTimeout(() => {
+      if (!resolved) {
+        window._geminiAddLog('监听超时', 'warn');
+        done('timeout');
+      }
+    }, QUEUE_CONFIG.timeoutMs);
+  });
+}
+
+// --- 调度入口 ---
+function startObserver() {
+  const site = getSiteConfig();
+  if (site === SITE_CONFIGS.chatgpt) {
+    return startObserverChatGPT(site);
+  }
+  return startObserverDefault(site);
 }
 
 // ========== 格式化时间 ==========
@@ -164,7 +326,8 @@ async function runGeminiQueue() {
   window._geminiIsRunning = true;
 
   const queueStartTime = Date.now();
-  window._geminiAddLog(`🚀 队列启动，共 ${prompts.length} 个任务`, 'success');
+  const site = getSiteConfig();
+  window._geminiAddLog(`🚀 [${site.name}] 队列启动，共 ${prompts.length} 个任务`, 'success');
   if (prefix) window._geminiAddLog(`前缀: "${prefix}"`, 'info');
   if (suffix) window._geminiAddLog(`后缀: "${suffix}"`, 'info');
 
@@ -216,24 +379,26 @@ async function runGeminiQueue() {
 
     // 队列间歇
     if (i < prompts.length - 1 && !window._geminiQueueAbort) {
-      const delay = Math.floor(Math.random() * (GEMINI_CONFIG.maxDelay - GEMINI_CONFIG.minDelay + 1)) + GEMINI_CONFIG.minDelay;
-      window._geminiAddLog(`⏸ 冷却 ${(delay / 1000).toFixed(1)}s...`, 'info');
+      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
+      const totalSec = Math.ceil(delay / 1000);
+      window._geminiAddLog(`⏸ 冷却 ${totalSec}s...`, 'info');
 
       const btn = document.getElementById('gemini-auto-runner-btn');
 
-      // 分段 sleep 以便及时响应中止，同时显示倒计时
-      const sliceMs = 500;
-      let waited = 0;
-      while (waited < delay && !window._geminiQueueAbort) {
-        const remaining = Math.max(0, (delay - waited) / 1000);
-        progressText.innerText = `冷却中 ${remaining.toFixed(1)}s | ${i + 1} / ${prompts.length}`;
-        if (btn) btn.innerText = `⏸ 冷却 ${remaining.toFixed(1)}s`;
-        await sleep(Math.min(sliceMs, delay - waited));
-        waited += sliceMs;
+      // 以 1 秒为周期倒计时
+      for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
+        const progress = ((totalSec - sec) / totalSec) * 100;
+        progressText.innerText = `冷却中 ${sec}s | ${i + 1} / ${prompts.length}`;
+        if (btn) {
+          btn.innerText = `⏸ 冷却 ${sec}s`;
+          btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
+        }
+        await sleep(1000);
       }
-      // 恢复按钮文字
+      // 恢复按钮样式
       if (btn && !window._geminiQueueAbort) {
         btn.innerText = '⏹ 停止队列';
+        btn.style.background = '';
       }
     }
   }

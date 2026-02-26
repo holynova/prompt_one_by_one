@@ -52,7 +52,7 @@ const SIDEBAR_HTML = `
   </div>
 
   <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
-  <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" />
+  <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
 
   <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<div style="display:flex;align-items:center;gap:4px;"><div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div><button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div></div>
   <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
@@ -60,7 +60,7 @@ const SIDEBAR_HTML = `
 下雨天的东方明珠, 印象主义风格</textarea>
 
   <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
-  <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" />
+  <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
 
   <div class="gemini-progress-container">
     <div class="gemini-progress-bg">
@@ -176,13 +176,15 @@ window._geminiOnQueueEnd = function() {
       setTimeout(() => {
         btn.innerText = '▶ 启动作图队列';
         btn.className = '';
-        resetTimerDisplay();
+        btn.style.background = '';
+        resetTimerDisplay();``
         if (progressBar) progressBar.style.width = '0%';
         if (progressText) progressText.innerText = '准备就绪: 0 / 0';
       }, 3000);
     } else {
       btn.innerText = '▶ 启动作图队列';
       btn.className = '';
+      btn.style.background = '';
       resetTimerDisplay();
       if (progressBar) progressBar.style.width = '0%';
       if (progressText) progressText.innerText = '准备就绪: 0 / 0';
@@ -326,7 +328,8 @@ function injectControlUI() {
   };
 
   // 初始日志
-  window._geminiAddLog('侧边栏已加载，准备就绪', 'info');
+  const _currentSite = getSiteConfig();
+  window._geminiAddLog(`侧边栏已加载 [${_currentSite.name}]，准备就绪`, 'info');
 }
 
 // ========== 延迟注入 ==========
