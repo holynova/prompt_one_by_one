@@ -31,6 +31,34 @@ html.gemini-sidebar-open {
   transition: width 0.3s ease;
 }
 
+/* 设置项 */
+.gemini-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.gemini-setting-row label {
+  font-size: 11px;
+  color: #aaa;
+}
+.gemini-setting-number {
+  width: 50px;
+  padding: 4px 6px;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+.gemini-setting-number:focus {
+  outline: none;
+  border-color: #1e88e5;
+}
+
 /* 头部区域 */
 .gemini-sidebar-header {
   display: flex;

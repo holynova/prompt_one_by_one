@@ -51,6 +51,11 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
+  <div class="gemini-setting-row">
+    <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
+    <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="0" title="设为 0 表示不启用" />
+  </div>
+
   <div class="gemini-tabs">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>

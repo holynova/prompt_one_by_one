@@ -23,6 +23,7 @@ const SITE_CONFIGS = {
     failKeywords: ['无法生成', '请重试', '安全限制'],
     fileInputSelector: 'input[type="file"]',
     uploadButtonSelector: 'button[aria-label*="上传"], button[aria-label*="Upload"], button[aria-label*="image"], button[aria-label*="图片"]',
+    newChatButtonSelector: 'a[aria-label*="New chat"], a[aria-label*="新建聊天"], button[aria-label*="New chat"]',
   },
   chatgpt: {
     name: 'ChatGPT',
@@ -32,6 +33,7 @@ const SITE_CONFIGS = {
     failKeywords: ['unable to generate', 'content policy', '无法生成'],
     fileInputSelector: 'input[type="file"]',
     uploadButtonSelector: 'button[aria-label*="Attach"], button[aria-label*="附件"], button[aria-label*="Upload"]',
+    newChatButtonSelector: 'a[data-testid="create-new-chat-button"], nav a[href="/"], button[aria-label*="New chat"]',
   },
   grok: {
     name: 'Grok',
@@ -41,6 +43,7 @@ const SITE_CONFIGS = {
     failKeywords: ['unable to generate', 'content policy', '无法生成'],
     fileInputSelector: 'input[type="file"]',
     uploadButtonSelector: 'button[aria-label*="Attach"], button[aria-label*="Upload"]',
+    newChatButtonSelector: 'a[href="/chat"], a[aria-label*="聊天"], a[aria-label*="Chat"], button[aria-label*="New chat"], button[aria-label*="New conversation"]',
   },
 };
 
@@ -311,6 +314,41 @@ function formatElapsed(ms) {
   return `${min}分${sec}秒`;
 }
 
+// ========== 自动新建会话 ==========
+function getNewChatInterval() {
+  const input = document.getElementById('gemini-newchat-interval');
+  const val = parseInt(input?.value, 10);
+  return (val && val > 0) ? val : 0; // 0 = 不启用
+}
+
+async function openNewChat() {
+  const site = getSiteConfig();
+
+  // 找到“新建会话”按钮并点击
+  const newChatBtn = document.querySelector(site.newChatButtonSelector);
+  if (!newChatBtn) {
+    window._geminiAddLog('⚠️ 未找到“新建会话”按钮，跳过', 'warn');
+    return;
+  }
+
+  window._geminiAddLog('🔄 点击“新建会话”...', 'info');
+  newChatBtn.click();
+
+  // 等待新会话加载
+  await sleep(3000);
+
+  // 等待输入框出现（最多再等 10s）
+  for (let i = 0; i < 20; i++) {
+    const input = document.querySelector(site.inputSelector);
+    if (input) {
+      window._geminiAddLog('✅ 新会话已就绪', 'info');
+      return;
+    }
+    await sleep(500);
+  }
+  window._geminiAddLog('⚠️ 新会话加载超时，尝试继续...', 'warn');
+}
+
 // ========== 主队列执行 ==========
 async function runGeminiQueue() {
   // 读取提示词
@@ -386,6 +424,13 @@ async function runGeminiQueue() {
       window._geminiAddLog(`${info.icon} 任务 ${i + 1}: ${info.text} (耗时 ${formatElapsed(elapsed)})`, info.type);
     } else {
       window._geminiAddLog(`❌ 任务 ${i + 1}: 输入失败，跳过`, 'error');
+    }
+
+    // 自动新建会话
+    const newChatN = getNewChatInterval();
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && i < prompts.length - 1 && !window._geminiQueueAbort) {
+      window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
+      await openNewChat();
     }
 
     // 队列间歇
@@ -560,6 +605,13 @@ async function runImageQueue() {
       window._geminiAddLog(`${info.icon} 任务 ${i + 1} (${file.name}): ${info.text} (耗时 ${formatElapsed(elapsed)})`, info.type);
     } else {
       window._geminiAddLog(`❌ 任务 ${i + 1}: 输入失败，跳过`, 'error');
+    }
+
+    // 自动新建会话
+    const newChatN = getNewChatInterval();
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && i < files.length - 1 && !window._geminiQueueAbort) {
+      window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
+      await openNewChat();
     }
 
     // 冷却
