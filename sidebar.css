@@ -4,11 +4,12 @@
 
 /* 侧边栏容器 */
 #gemini-auto-sidebar {
+  --sidebar-width: 340px;
   position: fixed;
   top: 0;
   right: 0;
   height: 100vh;
-  width: 340px;
+  width: var(--sidebar-width);
   background-color: #1a1a2e;
   border-left: 1px solid rgba(255,255,255,0.08);
   box-shadow: -4px 0 20px rgba(0,0,0,0.3);
@@ -26,9 +27,25 @@
 
 /* 页面内容缩进，不被侧边栏遮挡 */
 html.gemini-sidebar-open {
-  width: calc(100% - 340px) !important;
+  width: calc(100% - var(--sidebar-width, 340px)) !important;
   overflow-x: hidden !important;
   transition: width 0.3s ease;
+}
+
+/* 拖拽调整宽度的手柄 */
+.gemini-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1000000;
+  transition: background 0.2s;
+}
+.gemini-resize-handle:hover,
+.gemini-resize-handle.active {
+  background: rgba(66, 133, 244, 0.5);
 }
 
 /* 设置项 */

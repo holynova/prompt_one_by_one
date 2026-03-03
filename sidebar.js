@@ -280,6 +280,46 @@ function injectControlUI() {
   document.body.appendChild(sidebar);
   document.documentElement.classList.add('gemini-sidebar-open');
 
+  // ===== 拖拽调整宽度 =====
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'gemini-resize-handle';
+  sidebar.appendChild(resizeHandle);
+
+  // 恢复上次保存的宽度
+  const savedWidth = localStorage.getItem('gemini-sidebar-width');
+  if (savedWidth) {
+    sidebar.style.setProperty('--sidebar-width', savedWidth);
+    document.documentElement.style.setProperty('--sidebar-width', savedWidth);
+  }
+
+  let isResizing = false;
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    isResizing = true;
+    resizeHandle.classList.add('active');
+    sidebar.style.transition = 'none'; // 拖拽时禁用过渡动画
+    document.documentElement.style.transition = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const newWidth = Math.min(600, Math.max(260, window.innerWidth - e.clientX));
+    const widthPx = newWidth + 'px';
+    sidebar.style.setProperty('--sidebar-width', widthPx);
+    document.documentElement.style.setProperty('--sidebar-width', widthPx);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    resizeHandle.classList.remove('active');
+    sidebar.style.transition = '';
+    document.documentElement.style.transition = '';
+    // 保存宽度
+    const currentWidth = getComputedStyle(sidebar).getPropertyValue('--sidebar-width').trim();
+    localStorage.setItem('gemini-sidebar-width', currentWidth);
+  });
+
   // 创建展开按钮
   const openBtn = document.createElement('button');
   openBtn.id = 'gemini-open-btn';
