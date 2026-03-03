@@ -22,12 +22,12 @@ jobs:
       - name: Package extension
         run: |
           ZIP_NAME="prompt_one_by_one_${GITHUB_REF_NAME}.zip"
-          zip -r "${ZIP_NAME}" \
-            manifest.json \
-            automation.js \
-            sidebar.js \
-            sidebar.css \
-            README.md
+          zip -r "${ZIP_NAME}" . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "node_modules/*" \
+            -x "package.json" \
+            -x "package-lock.json"
           echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_OUTPUT
         id: package
 
