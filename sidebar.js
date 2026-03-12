@@ -82,7 +82,7 @@ const SIDEBAR_HTML = `
     <div class="gemini-label">选择图片（支持多选）</div>
     <div class="gemini-image-upload-area" id="gemini-image-upload-area">
       <input type="file" id="gemini-image-file-input" multiple accept="image/*" style="display:none;" />
-      <button id="gemini-image-select-btn" class="gemini-image-select-btn">📂 选择图片文件</button>
+      <button id="gemini-image-select-btn" class="gemini-image-select-btn">📂 选择图片/拖拽文件夹</button>
       <span id="gemini-image-count" class="gemini-image-count">未选择文件</span>
     </div>
 
@@ -374,23 +374,20 @@ function injectControlUI() {
     }
   };
 
-  // ===== 图片转换：文件选择 =====
+  // ===== 图片转换：文件选择与拖拽 =====
   window._imageQueueFiles = [];
   const fileInput = document.getElementById('gemini-image-file-input');
   const selectBtn = document.getElementById('gemini-image-select-btn');
   const imageCount = document.getElementById('gemini-image-count');
   const imagePreview = document.getElementById('gemini-image-preview');
+  const uploadArea = document.getElementById('gemini-image-upload-area');
 
   selectBtn.onclick = () => fileInput.click();
 
-  fileInput.onchange = () => {
-    const files = Array.from(fileInput.files);
-    window._imageQueueFiles = files;
-    imageCount.textContent = files.length > 0 ? `已选择 ${files.length} 张图片` : '未选择文件';
-
-    // 渲染预览
+  function renderImagePreview() {
+    imageCount.textContent = window._imageQueueFiles.length > 0 ? `已选择 ${window._imageQueueFiles.length} 张图片` : '未选择文件';
     imagePreview.innerHTML = '';
-    files.forEach((file, idx) => {
+    window._imageQueueFiles.forEach((file, idx) => {
       const item = document.createElement('div');
       item.className = 'gemini-image-preview-item';
 
@@ -409,11 +406,11 @@ function injectControlUI() {
       delBtn.onclick = (e) => {
         e.stopPropagation();
         window._imageQueueFiles.splice(idx, 1);
-        // 重新触发渲染
+        renderImagePreview();
+        
         const dt = new DataTransfer();
         window._imageQueueFiles.forEach(f => dt.items.add(f));
         fileInput.files = dt.files;
-        fileInput.dispatchEvent(new Event('change'));
       };
 
       item.appendChild(img);
@@ -421,7 +418,90 @@ function injectControlUI() {
       item.appendChild(delBtn);
       imagePreview.appendChild(item);
     });
+  }
+
+  fileInput.onchange = () => {
+    const files = Array.from(fileInput.files);
+    window._imageQueueFiles = window._imageQueueFiles.concat(files);
+    renderImagePreview();
   };
+
+  function scanFiles(entry) {
+    return new Promise((resolve) => {
+      if (!entry) {
+        resolve([]);
+        return;
+      }
+      if (entry.isFile) {
+        entry.file(f => resolve([f]));
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader();
+        let results = [];
+        function readEntries() {
+          dirReader.readEntries((res) => {
+            if (!res.length) {
+              Promise.all(results.map(e => scanFiles(e))).then(filesArrays => {
+                resolve(filesArrays.flat());
+              });
+            } else {
+              results = results.concat(Array.from(res));
+              readEntries();
+            }
+          }, () => resolve([]));
+        }
+        readEntries();
+      } else {
+         resolve([]);
+      }
+    });
+  }
+
+  if (uploadArea) {
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      
+      if (!e.dataTransfer || !e.dataTransfer.items) return;
+      
+      const originalText = imageCount.textContent;
+      imageCount.textContent = '正在读取文件...';
+      
+      let entries = [];
+      for (let i = 0; i < e.dataTransfer.items.length; i++) {
+        let entry = e.dataTransfer.items[i].webkitGetAsEntry();
+        if (entry) entries.push(entry);
+      }
+      
+      let allFiles = [];
+      for (let entry of entries) {
+        const files = await scanFiles(entry);
+        allFiles = allFiles.concat(files);
+      }
+      
+      const imageFiles = allFiles.filter(f => f.type.startsWith('image/') || f.name.match(/\.(png|jpe?g|gif|webp|svg|bmp)$/i));
+      
+      if (imageFiles.length > 0) {
+        window._imageQueueFiles = window._imageQueueFiles.concat(imageFiles);
+        renderImagePreview();
+        
+        const dt = new DataTransfer();
+        window._imageQueueFiles.forEach(f => dt.items.add(f));
+        fileInput.files = dt.files;
+      } else {
+        imageCount.textContent = originalText;
+      }
+    });
+  }
 
   // ===== 图片转换 启动/停止按钮 =====
   const imageRunBtn = document.getElementById('gemini-image-runner-btn');
