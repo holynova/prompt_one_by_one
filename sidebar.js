@@ -66,7 +66,15 @@ const SIDEBAR_HTML = `
     <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
     <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
 
-    <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">提示词列表（一行一个）<div style="display:flex;align-items:center;gap:4px;"><div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div><button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button></div></div>
+    <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>提示词列表 <span id="gemini-prompt-count" style="margin-left:4px;color:#8ab4f8;font-weight:bold;">0</span></span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button id="gemini-shuffle-prompts-btn" class="gemini-link-btn" title="打乱当前列表">🔀 打乱</button>
+        <button id="gemini-all-prompts-btn" class="gemini-link-btn" title="使用全部预设">🌌 全都要</button>
+        <div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div>
+        <button id="gemini-random-style-btn" class="gemini-link-btn" title="从预设风格中随机选取5个">🎲 随机风格</button>
+      </div>
+    </div>
     <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
@@ -250,7 +258,6 @@ window._geminiOnQueueEnd = function() {
   if (imagePauseActions) imagePauseActions.style.display = 'none';
 
   const resetToIdle = () => {
-    resetTimerDisplay();
     if (progressBar) progressBar.style.width = '0%';
     if (progressText) progressText.innerText = '准备就绪: 0 / 0';
     if (textStartRow) textStartRow.style.display = '';
@@ -298,7 +305,10 @@ function injectControlUI() {
   sidebar.id = 'gemini-auto-sidebar';
   sidebar.innerHTML = SIDEBAR_HTML;
   document.body.appendChild(sidebar);
-  document.documentElement.classList.add('gemini-sidebar-open');
+  
+  // 默认收起状态
+  sidebar.style.transform = 'translateX(100%)';
+  document.documentElement.classList.remove('gemini-sidebar-open');
 
   // ===== 拖拽调整宽度 =====
   const resizeHandle = document.createElement('div');
@@ -345,6 +355,9 @@ function injectControlUI() {
   openBtn.id = 'gemini-open-btn';
   openBtn.innerText = '◀ 展开';
   document.body.appendChild(openBtn);
+  
+  // 默认显示展开按钮（因为侧边栏已默认收起）
+  openBtn.style.display = 'block';
 
   // ===== 绑定事件 =====
 
@@ -406,9 +419,20 @@ function injectControlUI() {
   prefixInput.addEventListener('input', () => {
     localStorage.setItem('gemini_saved_prefix', prefixInput.value);
   });
+  const updatePromptCount = () => {
+    const text = textarea.value || '';
+    const count = text.split('\n').map(l => l.trim()).filter(l => l).length;
+    const badge = document.getElementById('gemini-prompt-count');
+    if (badge) badge.innerText = count;
+  };
+
   textarea.addEventListener('input', () => {
     localStorage.setItem('gemini_saved_prompt', textarea.value);
+    updatePromptCount();
   });
+  
+  // 初始计数
+  updatePromptCount();
   suffixInput.addEventListener('input', () => {
     localStorage.setItem('gemini_saved_suffix', suffixInput.value);
   });
@@ -715,27 +739,56 @@ function injectControlUI() {
     styleDropdown.style.display = 'none';
   });
 
+  // 打乱按钮
+  const shuffleBtn = document.getElementById('gemini-shuffle-prompts-btn');
+  if (shuffleBtn) {
+    shuffleBtn.onclick = () => {
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length === 0) return;
+      for (let i = lines.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [lines[i], lines[j]] = [lines[j], lines[i]];
+      }
+      textarea.value = lines.join('\n');
+      updatePromptCount();
+      localStorage.setItem('gemini_saved_prompt', textarea.value);
+      window._geminiAddLog(`🔀 已打乱 ${lines.length} 条提示词`, 'info');
+    };
+  }
+
+  // 全都要按钮
+  const allPromptsBtn = document.getElementById('gemini-all-prompts-btn');
+  if (allPromptsBtn) {
+    allPromptsBtn.onclick = () => {
+      if (typeof prompts === 'undefined' || !Array.isArray(prompts) || prompts.length === 0) {
+        window._geminiAddLog('❌ 未找到预设风格数据', 'error');
+        return;
+      }
+      textarea.value = prompts.map(p => p.prompt).join('\n');
+      updatePromptCount();
+      localStorage.setItem('gemini_saved_prompt', textarea.value);
+      window._geminiAddLog(`🌌 已载入全部 ${prompts.length} 条预设提示词`, 'info');
+    };
+  }
+
   // 随机风格按钮
   const randomBtn = document.getElementById('gemini-random-style-btn');
-  randomBtn.onclick = () => {
-    if (typeof prompts === 'undefined' || !Array.isArray(prompts) || prompts.length === 0) {
-      window._geminiAddLog('❌ 未找到预设风格数据', 'error');
-      return;
-    }
-    // 使用选中的风格，未选则使用全部
-    let pool;
-    if (selectedStyles.size > 0) {
-      pool = [...selectedStyles].map(idx => prompts[idx]);
-    } else {
-      pool = [...prompts];
-    }
-    // Fisher-Yates 随机取 5 个（或 pool 长度）
-    const count = Math.min(5, pool.length);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, count);
-    textarea.value = picked.map(p => p.prompt).join('\n\n');
-    window._geminiAddLog(`🎲 已随机选取 ${picked.length} 个风格: ${picked.map(p => p.style).join(', ')}`, 'info');
-  };
+  if (randomBtn) {
+    randomBtn.onclick = () => {
+      if (typeof prompts === 'undefined' || !Array.isArray(prompts) || prompts.length === 0) {
+        window._geminiAddLog('❌ 未找到预设风格数据', 'error');
+        return;
+      }
+      let pool = selectedStyles.size > 0 ? [...selectedStyles].map(idx => prompts[idx]) : [...prompts];
+      const count = Math.min(5, pool.length);
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      const picked = shuffled.slice(0, count);
+      textarea.value = picked.map(p => p.prompt).join('\n');
+      updatePromptCount();
+      localStorage.setItem('gemini_saved_prompt', textarea.value);
+      window._geminiAddLog(`🎲 已随机选取 ${picked.length} 个风格`, 'info');
+    };
+  }
 
   // 初始日志
   const _currentSite = getSiteConfig();
@@ -754,11 +807,11 @@ chrome.runtime.onMessage.addListener((message) => {
     const isHidden = sidebar.style.transform === 'translateX(100%)';
     if (isHidden) {
       sidebar.style.transform = 'translateX(0)';
-      document.body.classList.add('gemini-sidebar-open');
+      document.documentElement.classList.add('gemini-sidebar-open');
       if (openBtn) openBtn.style.display = 'none';
     } else {
       sidebar.style.transform = 'translateX(100%)';
-      document.body.classList.remove('gemini-sidebar-open');
+      document.documentElement.classList.remove('gemini-sidebar-open');
       setTimeout(() => { if (openBtn) openBtn.style.display = 'block'; }, 300);
     }
   }

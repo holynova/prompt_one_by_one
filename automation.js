@@ -179,7 +179,7 @@ function _getExistingImageSrcs() {
   return new Set(Array.from(imgs).map(img => img.src).filter(Boolean));
 }
 
-// --- Gemini / Grok: MutationObserver 方式 ---
+// --- Gemini / Grok: 组合 MutationObserver 和 轮询方式 ---
 function startObserverDefault(site) {
   // 快照当前所有图片 src，避免把上传预览误判为生成结果
   const existingImgSrcs = _getExistingImageSrcs();
@@ -187,46 +187,51 @@ function startObserverDefault(site) {
   return new Promise((resolve) => {
     window._geminiAddLog(`开启监听，等待生成结果 (超时: ${QUEUE_CONFIG.timeoutMs / 1000}s)...`, 'info');
 
-    const targetNode = document.body;
-    const config = { childList: true, subtree: true, characterData: true };
     let isGenerating = true;
+    let observer;
+    let pollInterval;
     let checkTimeout;
 
-    const callback = function(mutationsList, observer) {
+    const cleanupAndResolve = (result) => {
       if (!isGenerating) return;
+      isGenerating = false;
+      if (observer) observer.disconnect();
+      if (pollInterval) clearInterval(pollInterval);
+      if (checkTimeout) clearTimeout(checkTimeout);
+      resolve(result);
+    };
 
-      if (window._geminiQueueAbort) {
-        isGenerating = false;
-        observer.disconnect();
-        clearTimeout(checkTimeout);
-        resolve('aborted');
-        return;
+    // 1. 每隔 1 秒主动轮询页面上的 <img> (应对后期修改 src 的骨架屏/懒加载)
+    pollInterval = setInterval(() => {
+      if (window._geminiQueueAbort) return cleanupAndResolve('aborted');
+
+      const currentImgs = document.querySelectorAll('img');
+      for (const img of currentImgs) {
+        if (img.src && !img.src.includes('avatar') && !img.src.includes('data:image/svg') && !existingImgSrcs.has(img.src)) {
+          // 找到了不在初始快照里的实底新图片
+          cleanupAndResolve('success');
+          return;
+        }
       }
+    }, 1000);
+
+    // 2. 依然保留 MutationObserver，用于监听文字判断失败关键词
+    const targetNode = document.body;
+    // 增加 attributes: true 能够监听到图片 src 被后期赋值
+    const config = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['src'] };
+
+    const callback = function(mutationsList) {
+      if (!isGenerating) return;
+      if (window._geminiQueueAbort) return cleanupAndResolve('aborted');
 
       for (let mutation of mutationsList) {
+        // 新节点插入：主要为了检测是否出现了拦截关键词
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === Node.ELEMENT_NODE) {
-              const images = node.querySelectorAll ? node.querySelectorAll('img') : [];
-              // 只计算 src 不在快照中的真正新图片
-              const newImages = Array.from(images).filter(img =>
-                img.src && !img.src.includes('avatar') && !existingImgSrcs.has(img.src)
-              );
-
-              if (newImages.length > 0) {
-                isGenerating = false;
-                observer.disconnect();
-                clearTimeout(checkTimeout);
-                resolve('success');
-                return;
-              }
-
               const textContent = node.textContent || "";
               if (site.failKeywords.some(kw => textContent.includes(kw))) {
-                isGenerating = false;
-                observer.disconnect();
-                clearTimeout(checkTimeout);
-                resolve('failed');
+                cleanupAndResolve('failed');
                 return;
               }
             }
@@ -235,15 +240,12 @@ function startObserverDefault(site) {
       }
     };
 
-    const observer = new MutationObserver(callback);
+    observer = new MutationObserver(callback);
     observer.observe(targetNode, config);
 
+    // 3. 超时断开检测
     checkTimeout = setTimeout(() => {
-      if (isGenerating) {
-        isGenerating = false;
-        observer.disconnect();
-        resolve('timeout');
-      }
+      cleanupAndResolve('timeout');
     }, QUEUE_CONFIG.timeoutMs);
   });
 }
@@ -452,7 +454,7 @@ async function runGeminiQueue() {
     }
 
     // 组合完整提示词
-    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join('\n');
+    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join(' ');
 
     window._geminiAddLog(`▶ 任务 ${i + 1}/${prompts.length} 开始`, 'info');
 
@@ -779,7 +781,7 @@ async function runExperimentQueue() {
       break;
     }
 
-    const fullPrompt = [prefix, experimentPrompts[i], suffix].filter(Boolean).join('\n');
+    const fullPrompt = [prefix, experimentPrompts[i], suffix].filter(Boolean).join(' ');
 
     window._geminiAddLog(`🧪 实验任务 ${i + 1}/${experimentPrompts.length} 开始`, 'info');
 
