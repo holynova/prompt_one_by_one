@@ -352,7 +352,6 @@ html.gemini-sidebar-open {
   cursor: pointer;
   transition: all 0.25s ease;
   flex-shrink: 0;
-  margin-bottom: 10px;
   letter-spacing: 0.3px;
 }
 #gemini-auto-runner-btn:hover:not(:disabled) {
@@ -691,7 +690,7 @@ html.gemini-sidebar-open {
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -700,6 +699,7 @@ html.gemini-sidebar-open {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
 }
 .gemini-experiment-btn:hover:not(:disabled) {
   filter: brightness(1.1);
@@ -734,4 +734,29 @@ html.gemini-sidebar-open {
 .gemini-image-prompt-textarea:focus {
   outline: none;
   border-color: #1e88e5;
+}
+
+/* ===== 下载主按钮 ===== */
+.gemini-download-main-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #1976D2, #0D47A1);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+.gemini-download-main-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+.gemini-download-main-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

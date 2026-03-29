@@ -56,6 +56,11 @@ const SIDEBAR_HTML = `
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
+  <div class="gemini-setting-row">
+    <label for="gemini-download-folder">批量下载保存目录</label>
+    <input type="text" id="gemini-download-folder" class="gemini-setting-number" style="width:120px;text-align:left;" value="gemini_images" title="默认下载目录下的子文件夹" />
+  </div>
+
   <div class="gemini-tabs">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
@@ -67,7 +72,7 @@ const SIDEBAR_HTML = `
     <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
 
     <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>提示词列表 <span id="gemini-prompt-count" style="margin-left:4px;color:#8ab4f8;font-weight:bold;">0</span></span>
+      <span>提示词列表</span>
       <div style="display:flex;align-items:center;gap:4px;">
         <button id="gemini-shuffle-prompts-btn" class="gemini-link-btn" title="打乱当前列表">🔀 打乱</button>
         <button id="gemini-all-prompts-btn" class="gemini-link-btn" title="使用全部预设">🌌 全都要</button>
@@ -78,6 +83,7 @@ const SIDEBAR_HTML = `
     <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
+    <div style="text-align:right;font-size:12px;margin-top:-6px;margin-bottom:8px;color:#888;">条数：<span id="gemini-prompt-count" style="color:#8ab4f8;font-weight:bold;">0</span></div>
 
     <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
     <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
@@ -85,7 +91,7 @@ const SIDEBAR_HTML = `
     <div id="gemini-text-btn-container">
       <div id="gemini-text-start-row" class="gemini-btn-row">
         <button id="gemini-auto-runner-btn">▶ 启动作图队列</button>
-        <button id="gemini-experiment-btn" class="gemini-experiment-btn">🧪 实验</button>
+        <button id="gemini-experiment-btn" class="gemini-experiment-btn">🧪 小批量实验</button>
       </div>
       <button id="gemini-text-pause-btn" class="gemini-running-pause-btn" style="display:none;">⏸ 暂停队列</button>
       <div id="gemini-text-pause-actions" class="gemini-pause-actions" style="display:none;">
@@ -135,10 +141,16 @@ const SIDEBAR_HTML = `
       <span class="gemini-dashboard-label">⏱ 总计耗时</span>
       <span id="gemini-dash-total" class="gemini-dashboard-value gemini-dash-orange">00:00</span>
     </div>
+    <div class="gemini-dashboard-row">
+      <span class="gemini-dashboard-label">📊 平均作图</span>
+      <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
+    </div>
     <div class="gemini-progress-bg">
       <div id="gemini-progress-fill"></div>
     </div>
   </div>
+
+  <button id="gemini-download-btn" class="gemini-download-main-btn" style="margin-top:15px; margin-bottom:10px;">📥 打包下载本页原图 (ZIP)</button>
 
   <div class="gemini-log-container">
     <div class="gemini-label">运行日志</div>
@@ -190,9 +202,11 @@ function resetTimerDisplay() {
   const currentDisplay = document.getElementById('gemini-dash-current');
   const totalDisplay = document.getElementById('gemini-dash-total');
   const progressDisplay = document.getElementById('gemini-dash-progress');
+  const avgDisplay = document.getElementById('gemini-dash-average');
   if (currentDisplay) currentDisplay.textContent = '00:00';
   if (totalDisplay) totalDisplay.textContent = '00:00';
   if (progressDisplay) progressDisplay.textContent = '0 / 0';
+  if (avgDisplay) avgDisplay.textContent = '00:00';
   _timerStartTime = null;
   _totalTimerStartTime = null;
 }
@@ -201,6 +215,12 @@ function resetTimerDisplay() {
 window._updateDashboardProgress = function(current, total) {
   const el = document.getElementById('gemini-dash-progress');
   if (el) el.textContent = `${current} / ${total}`;
+};
+
+// 更新看板平均时间
+window._updateDashboardAverage = function(timeStr) {
+  const el = document.getElementById('gemini-dash-average');
+  if (el) el.textContent = timeStr;
 };
 
 
@@ -262,7 +282,7 @@ window._geminiOnQueueEnd = function() {
     if (progressText) progressText.innerText = '准备就绪: 0 / 0';
     if (textStartRow) textStartRow.style.display = '';
     if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.background = ''; btn.disabled = false; }
-    if (experimentBtn) { experimentBtn.innerText = '🧪 实验'; experimentBtn.className = 'gemini-experiment-btn'; experimentBtn.disabled = false; }
+    if (experimentBtn) { experimentBtn.innerText = '🧪 小批量实验'; experimentBtn.className = 'gemini-experiment-btn'; experimentBtn.disabled = false; }
   };
 
   if (!window._geminiQueueAbort) {
@@ -305,12 +325,117 @@ function injectControlUI() {
   sidebar.id = 'gemini-auto-sidebar';
   sidebar.innerHTML = SIDEBAR_HTML;
   document.body.appendChild(sidebar);
-  
-  // 默认收起状态
-  sidebar.style.transform = 'translateX(100%)';
-  document.documentElement.classList.remove('gemini-sidebar-open');
 
-  // ===== 拖拽调整宽度 =====
+  // 恢复文本设置和下载目录设置
+  const downloadFolderInput = document.getElementById('gemini-download-folder');
+  if (downloadFolderInput) {
+    const savedFolder = localStorage.getItem('gemini-download-folder');
+    if (savedFolder) downloadFolderInput.value = savedFolder;
+    downloadFolderInput.addEventListener('input', (e) => {
+      localStorage.setItem('gemini-download-folder', e.target.value);
+    });
+  }
+
+  // 原图提取下载
+  const downloadBtn = document.getElementById('gemini-download-btn');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', async () => {
+      if (downloadBtn.disabled) return;
+      downloadBtn.disabled = true;
+
+      const startTime = Date.now();
+      const formatTime = (ms) => {
+        const total = Math.floor(ms / 1000);
+        const m = String(Math.floor(total / 60)).padStart(2, '0');
+        const s = String(total % 60).padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      downloadBtn.innerText = `⏳ 打包中... 00:00`;
+      const timerStr = setInterval(() => {
+        downloadBtn.innerText = `⏳ 打包中... ${formatTime(Date.now() - startTime)}`;
+      }, 1000);
+
+      try {
+        window._geminiAddLog('正在提取页面所有原图...', 'info');
+        const images = Array.from(document.querySelectorAll('img'));
+        const imageUrls = images
+          .map(img => img.src)
+          .filter(src => src.includes('googleusercontent.com') && !src.includes('favicon') && !src.includes('avatar'));
+        
+        const uniqueUrls = new Set(imageUrls);
+        const downloadList = Array.from(uniqueUrls).map(url => {
+          let fullUrl = url;
+          const lastEqIndex = url.lastIndexOf('=');
+          if (lastEqIndex !== -1) {
+            fullUrl = url.substring(0, lastEqIndex + 1) + 's0';
+          } else {
+            fullUrl = url + '=s0';
+          }
+          return fullUrl;
+        });
+
+        if (downloadList.length > 0) {
+          const customFolder = (downloadFolderInput && downloadFolderInput.value.trim()) ? downloadFolderInput.value.trim() : 'gemini_images';
+          window._geminiAddLog(`✅ 找到 ${downloadList.length} 张图片，正在下载并打包为 ${customFolder}.zip...`, 'info');
+
+          if (typeof JSZip === 'undefined') {
+             throw new Error("JSZip 库未加载，无法执行打包");
+          }
+
+          const zip = new JSZip();
+          const folder = zip.folder(customFolder);
+          
+          let completed = 0;
+          const maxConcurrency = 5; // 控制并发，防止并发过多导致浏览器连接占满或卡顿
+          for (let i = 0; i < downloadList.length; i += maxConcurrency) {
+            const chunk = downloadList.slice(i, i + maxConcurrency);
+            await Promise.all(chunk.map(async (url, idx) => {
+              const globalIdx = i + idx;
+              try {
+                const response = await new Promise((resolve, reject) => {
+                  chrome.runtime.sendMessage({ action: 'FETCH_IMAGE_B64', url: url }, (res) => {
+                    if (chrome.runtime.lastError) return reject(chrome.runtime.lastError.message);
+                    if (res && res.success) resolve(res.data);
+                    else reject(res ? res.error : 'Unknown fetch error');
+                  });
+                });
+                folder.file(`image_${Date.now()}_${globalIdx + 1}.jpg`, response, { base64: true });
+              } catch (err) {
+                console.error("Fetch image error", err);
+              }
+            }));
+            completed += chunk.length;
+            window._geminiAddLog(`🕒 下载进度: ${completed}/${downloadList.length}`, 'info');
+          }
+          
+          window._geminiAddLog(`📦 获取结束，开始在本地生成 ZIP...`, 'info');
+          const content = await zip.generateAsync({ type: "blob" });
+          
+          const a = document.createElement("a");
+          const objectUrl = URL.createObjectURL(content);
+          a.href = objectUrl;
+          a.download = `${customFolder}.zip`;
+          a.click();
+          
+          // 释放内存
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+
+          window._geminiAddLog(`🚀 下载完成！(总耗时 ${formatTime(Date.now() - startTime)})`, 'success');
+        } else {
+          window._geminiAddLog('❌ 未找到可下载的 AI 生成图片。', 'warn');
+        }
+      } catch(e) {
+         window._geminiAddLog('❌ 打包过程出错: ' + e, 'error');
+      } finally {
+        clearInterval(timerStr);
+        downloadBtn.disabled = false;
+        downloadBtn.innerText = '📥 打包下载本页原图 (ZIP)';
+      }
+    });
+  }
+
+  // ===== 启动文本批量任务 =====
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'gemini-resize-handle';
   sidebar.appendChild(resizeHandle);
@@ -356,8 +481,24 @@ function injectControlUI() {
   openBtn.innerText = '◀ 展开';
   document.body.appendChild(openBtn);
   
-  // 默认显示展开按钮（因为侧边栏已默认收起）
-  openBtn.style.display = 'block';
+  // === 初始化侧边栏状态 ===
+  let defaultOpen = false;
+  if (window.location.search.includes('gemini_sidebar_open=1')) {
+    defaultOpen = true;
+    // 重写 URL，去掉参数避免刷新时错误
+    const newUrl = window.location.href.replace('gemini_sidebar_open=1', '').replace(/[\?&]$/, '').replace('?&', '?');
+    window.history.replaceState({}, document.title, newUrl);
+  }
+
+  if (defaultOpen) {
+    sidebar.style.transform = 'translateX(0)';
+    document.documentElement.classList.add('gemini-sidebar-open');
+    openBtn.style.display = 'none';
+  } else {
+    sidebar.style.transform = 'translateX(100%)';
+    document.documentElement.classList.remove('gemini-sidebar-open');
+    openBtn.style.display = 'block';
+  }
 
   // ===== 绑定事件 =====
 
