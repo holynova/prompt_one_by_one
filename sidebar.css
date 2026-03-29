@@ -603,6 +603,117 @@ html.gemini-sidebar-open {
   background: linear-gradient(135deg, #43a047, #2e7d32);
 }
 
+/* ===== 按钮行布局 ===== */
+.gemini-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: stretch;
+}
+.gemini-btn-row #gemini-auto-runner-btn {
+  flex: 1;
+}
+
+/* ===== 暂停操作按钮容器 ===== */
+.gemini-pause-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* 运行中的暂停按钮（单独一个全宽按钮） */
+.gemini-running-pause-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+}
+.gemini-running-pause-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+.gemini-running-pause-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.gemini-resume-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+.gemini-resume-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+
+.gemini-terminate-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+.gemini-terminate-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+
+/* ===== 实验模式按钮 ===== */
+.gemini-experiment-btn {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #7B1FA2, #6A1B9A);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gemini-experiment-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(123,31,162,0.3);
+}
+.gemini-experiment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.gemini-experiment-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+
 /* 图片转换提示词 textarea */
 .gemini-image-prompt-textarea {
   width: 100%;

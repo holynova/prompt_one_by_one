@@ -7,6 +7,42 @@
 // ========== 全局状态 ==========
 window._geminiQueueAbort = false;
 window._geminiIsRunning = false;
+window._geminiQueuePaused = false;
+
+// ========== Wake Lock（防止休眠） ==========
+let _wakeLock = null;
+
+async function acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      window._geminiAddLog('🔒 已启用屏幕常亮（防止休眠）', 'info');
+      _wakeLock.addEventListener('release', () => {
+        window._geminiAddLog('🔓 屏幕常亮已释放', 'info');
+      });
+    } else {
+      window._geminiAddLog('⚠️ 浏览器不支持 Wake Lock API，无法防止休眠', 'warn');
+    }
+  } catch (err) {
+    window._geminiAddLog(`⚠️ Wake Lock 获取失败: ${err.message}`, 'warn');
+  }
+}
+
+async function releaseWakeLock() {
+  if (_wakeLock) {
+    try {
+      await _wakeLock.release();
+    } catch (e) {}
+    _wakeLock = null;
+  }
+}
+
+// 页面重新可见时自动重新获取 Wake Lock
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && window._geminiIsRunning && !_wakeLock) {
+    await acquireWakeLock();
+  }
+});
 
 // 日志回调（由 sidebar.js 注入）
 window._geminiAddLog = window._geminiAddLog || function(msg, type) {
@@ -23,7 +59,7 @@ const SITE_CONFIGS = {
     failKeywords: ['无法生成', '请重试', '安全限制'],
     fileInputSelector: 'input[type="file"]',
     uploadButtonSelector: 'button[aria-label*="上传"], button[aria-label*="Upload"], button[aria-label*="image"], button[aria-label*="图片"]',
-    newChatButtonSelector: 'a[aria-label*="New chat"], a[aria-label*="新建聊天"], button[aria-label*="New chat"]',
+    newChatButtonSelector: 'a[aria-label*="New chat"], a[aria-label*="新建聊天"], a[aria-label*="新聊天"], a[aria-label*="新对话"], button[aria-label*="New chat"], button[aria-label*="新建聊天"], button[aria-label*="新聊天"], button[aria-label*="新对话"], [data-test-id*="new-chat"]',
   },
   chatgpt: {
     name: 'ChatGPT',
@@ -33,7 +69,7 @@ const SITE_CONFIGS = {
     failKeywords: ['unable to generate', 'content policy', '无法生成'],
     fileInputSelector: 'input[type="file"]',
     uploadButtonSelector: 'button[aria-label*="Attach"], button[aria-label*="附件"], button[aria-label*="Upload"]',
-    newChatButtonSelector: 'a[data-testid="create-new-chat-button"], nav a[href="/"], button[aria-label*="New chat"]',
+    newChatButtonSelector: 'a[data-testid*="new-chat"], a[href="/"], button[aria-label*="New chat"], button[aria-label*="新聊天"]',
   },
   grok: {
     name: 'Grok',
@@ -67,6 +103,13 @@ function getSiteConfig() {
 
 // ========== 工具函数 ==========
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// 暂停等待：循环检查 _geminiQueuePaused，直到取消暂停或终止
+async function waitWhilePaused() {
+  while (window._geminiQueuePaused && !window._geminiQueueAbort) {
+    await sleep(500);
+  }
+}
 
 function simulateInput(element, text) {
   element.focus();
@@ -324,10 +367,21 @@ function getNewChatInterval() {
 async function openNewChat() {
   const site = getSiteConfig();
 
-  // 找到“新建会话”按钮并点击
-  const newChatBtn = document.querySelector(site.newChatButtonSelector);
+  // 尝试找到一个真实可见的“新建会话”按钮
+  const selectors = site.newChatButtonSelector.split(',').map(s => s.trim());
+  let newChatBtn = null;
+  for (const sel of selectors) {
+    try {
+      const btns = Array.from(document.querySelectorAll(sel));
+      // 找面积 > 0 的（即没有被 display:none 或隐藏的）
+      newChatBtn = btns.find(b => b.offsetWidth > 0 && b.offsetHeight > 0);
+      if (newChatBtn) break;
+      if (!newChatBtn && btns.length > 0) newChatBtn = btns[0];
+    } catch(e) {}
+  }
+
   if (!newChatBtn) {
-    window._geminiAddLog('⚠️ 未找到“新建会话”按钮，跳过', 'warn');
+    window._geminiAddLog('⚠️ 未找到“新建会话”按钮，无法执行自动新建', 'warn');
     return;
   }
 
@@ -372,7 +426,11 @@ async function runGeminiQueue() {
 
   // 重置中止标记
   window._geminiQueueAbort = false;
+  window._geminiQueuePaused = false;
   window._geminiIsRunning = true;
+
+  // 防止休眠
+  await acquireWakeLock();
 
   const queueStartTime = Date.now();
   const site = getSiteConfig();
@@ -384,6 +442,9 @@ async function runGeminiQueue() {
   if (window._geminiOnQueueStart) window._geminiOnQueueStart();
 
   for (let i = 0; i < prompts.length; i++) {
+    // 暂停等待
+    await waitWhilePaused();
+
     // 检查是否中止
     if (window._geminiQueueAbort) {
       window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${prompts.length})`, 'warn');
@@ -428,7 +489,7 @@ async function runGeminiQueue() {
 
     // 自动新建会话
     const newChatN = getNewChatInterval();
-    if (newChatN > 0 && (i + 1) % newChatN === 0 && i < prompts.length - 1 && !window._geminiQueueAbort) {
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && !window._geminiQueueAbort) {
       window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
       await openNewChat();
     }
@@ -443,6 +504,8 @@ async function runGeminiQueue() {
 
       // 以 1 秒为周期倒计时
       for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
+        await waitWhilePaused();
+        if (window._geminiQueueAbort) break;
         const progress = ((totalSec - sec) / totalSec) * 100;
         if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, prompts.length);
         if (btn) {
@@ -453,7 +516,7 @@ async function runGeminiQueue() {
       }
       // 恢复按钮样式
       if (btn && !window._geminiQueueAbort) {
-        btn.innerText = '⏹ 停止队列';
+        btn.innerText = '⏸ 暂停队列';
         btn.style.background = '';
       }
     }
@@ -468,6 +531,8 @@ async function runGeminiQueue() {
   }
 
   window._geminiIsRunning = false;
+  window._geminiQueuePaused = false;
+  await releaseWakeLock();
 
   // 通知 sidebar 停止计时
   if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
@@ -541,7 +606,10 @@ async function runImageQueue() {
   if (window._updateDashboardProgress) window._updateDashboardProgress(0, files.length);
 
   window._geminiQueueAbort = false;
+  window._geminiQueuePaused = false;
   window._geminiIsRunning = true;
+
+  await acquireWakeLock();
 
   const queueStartTime = Date.now();
   const site = getSiteConfig();
@@ -551,6 +619,8 @@ async function runImageQueue() {
   if (window._geminiOnQueueStart) window._geminiOnQueueStart();
 
   for (let i = 0; i < files.length; i++) {
+    await waitWhilePaused();
+
     if (window._geminiQueueAbort) {
       window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${files.length})`, 'warn');
       break;
@@ -609,7 +679,7 @@ async function runImageQueue() {
 
     // 自动新建会话
     const newChatN = getNewChatInterval();
-    if (newChatN > 0 && (i + 1) % newChatN === 0 && i < files.length - 1 && !window._geminiQueueAbort) {
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && !window._geminiQueueAbort) {
       window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
       await openNewChat();
     }
@@ -623,6 +693,8 @@ async function runImageQueue() {
       const btn = document.getElementById('gemini-image-runner-btn');
 
       for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
+        await waitWhilePaused();
+        if (window._geminiQueueAbort) break;
         const progress = ((totalSec - sec) / totalSec) * 100;
         if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, files.length);
         if (btn) {
@@ -632,7 +704,7 @@ async function runImageQueue() {
         await sleep(1000);
       }
       if (btn && !window._geminiQueueAbort) {
-        btn.innerText = '⏹ 停止队列';
+        btn.innerText = '⏸ 暂停队列';
         btn.style.background = '';
       }
     }
@@ -647,6 +719,132 @@ async function runImageQueue() {
   }
 
   window._geminiIsRunning = false;
+  window._geminiQueuePaused = false;
+  await releaseWakeLock();
+
+  if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
+}
+
+// ========== 实验模式队列 ==========
+async function runExperimentQueue() {
+  const rawPrompts = document.getElementById('gemini-prompt-input').value;
+  const allPrompts = rawPrompts.split('\n').map(p => p.trim()).filter(p => p !== '');
+
+  if (allPrompts.length === 0) {
+    window._geminiAddLog('⚠️ 请先输入至少一个提示词！', 'warn');
+    return;
+  }
+
+  // 随机抽取最多5个（不重复）
+  const count = Math.min(5, allPrompts.length);
+  const indices = [];
+  const available = allPrompts.map((_, i) => i);
+  for (let i = 0; i < count; i++) {
+    const randIdx = Math.floor(Math.random() * available.length);
+    indices.push(available[randIdx]);
+    available.splice(randIdx, 1);
+  }
+  const experimentPrompts = indices.map(i => allPrompts[i]);
+
+  // 读取前缀/后缀
+  const prefix = (document.getElementById('gemini-prefix-input')?.value || '').trim();
+  const suffix = (document.getElementById('gemini-suffix-input')?.value || '').trim();
+
+  const progressBar = document.getElementById('gemini-progress-fill');
+  progressBar.style.width = '0%';
+  if (window._updateDashboardProgress) window._updateDashboardProgress(0, experimentPrompts.length);
+
+  window._geminiQueueAbort = false;
+  window._geminiQueuePaused = false;
+  window._geminiIsRunning = true;
+
+  await acquireWakeLock();
+
+  const queueStartTime = Date.now();
+  const site = getSiteConfig();
+  window._geminiAddLog(`🧪 [${site.name}] 实验模式启动，随机选取 ${experimentPrompts.length} 个任务`, 'success');
+  experimentPrompts.forEach((p, i) => {
+    window._geminiAddLog(`   ${i + 1}. "${p.substring(0, 50)}${p.length > 50 ? '...' : ''}"`, 'info');
+  });
+  if (prefix) window._geminiAddLog(`前缀: "${prefix}"`, 'info');
+  if (suffix) window._geminiAddLog(`后缀: "${suffix}"`, 'info');
+
+  if (window._geminiOnQueueStart) window._geminiOnQueueStart();
+
+  for (let i = 0; i < experimentPrompts.length; i++) {
+    await waitWhilePaused();
+
+    if (window._geminiQueueAbort) {
+      window._geminiAddLog(`⏹ 实验已停止 (已完成 ${i}/${experimentPrompts.length})`, 'warn');
+      break;
+    }
+
+    const fullPrompt = [prefix, experimentPrompts[i], suffix].filter(Boolean).join('\n');
+
+    window._geminiAddLog(`🧪 实验任务 ${i + 1}/${experimentPrompts.length} 开始`, 'info');
+
+    progressBar.style.width = `${(i / experimentPrompts.length) * 100}%`;
+    if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, experimentPrompts.length);
+
+    if (window._geminiOnPromptStart) window._geminiOnPromptStart();
+
+    const promptStartTime = Date.now();
+    const inputSuccess = await executeInput(fullPrompt);
+
+    if (inputSuccess) {
+      await sleep(1000);
+      const result = await startObserver();
+      const elapsed = Date.now() - promptStartTime;
+
+      if (result === 'aborted') {
+        window._geminiAddLog(`⏹ 实验已停止 (已完成 ${i}/${experimentPrompts.length})`, 'warn');
+        break;
+      }
+
+      const statusMap = {
+        'success': { icon: '🎉', text: '图片生成成功', type: 'success' },
+        'failed':  { icon: '❌', text: '生成失败/被拦截', type: 'error' },
+        'timeout': { icon: '⏳', text: '监听超时', type: 'warn' },
+      };
+      const info = statusMap[result] || { icon: '❓', text: result, type: 'info' };
+      window._geminiAddLog(`${info.icon} 实验 ${i + 1}: ${info.text} (耗时 ${formatElapsed(elapsed)})`, info.type);
+    } else {
+      window._geminiAddLog(`❌ 实验 ${i + 1}: 输入失败，跳过`, 'error');
+    }
+
+    // 自动新建会话
+    const newChatN = getNewChatInterval();
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && !window._geminiQueueAbort) {
+      window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
+      await openNewChat();
+    }
+
+    // 冷却（最后一个任务不需要）
+    if (i < experimentPrompts.length - 1 && !window._geminiQueueAbort) {
+      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
+      const totalSec = Math.ceil(delay / 1000);
+      window._geminiAddLog(`⏸ 冷却 ${totalSec}s...`, 'info');
+
+      for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
+        await waitWhilePaused();
+        if (window._geminiQueueAbort) break;
+        await sleep(1000);
+      }
+    }
+  }
+
+  const totalElapsed = Date.now() - queueStartTime;
+
+  if (!window._geminiQueueAbort) {
+    progressBar.style.width = '100%';
+    if (window._updateDashboardProgress) window._updateDashboardProgress(experimentPrompts.length, experimentPrompts.length);
+    window._geminiAddLog(`🧪 实验完成！共生成 ${experimentPrompts.length} 张图，总耗时 ${formatElapsed(totalElapsed)}`, 'success');
+    window._geminiAddLog('💡 请查看生成效果，满意后可启动完整队列', 'info');
+  }
+
+  window._geminiIsRunning = false;
+  window._geminiQueuePaused = false;
+  await releaseWakeLock();
 
   if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
 }

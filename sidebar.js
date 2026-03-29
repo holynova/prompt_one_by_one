@@ -53,7 +53,7 @@ const SIDEBAR_HTML = `
 
   <div class="gemini-setting-row">
     <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
-    <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="0" title="设为 0 表示不启用" />
+    <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
   <div class="gemini-tabs">
@@ -74,7 +74,17 @@ const SIDEBAR_HTML = `
     <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
     <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
 
-    <button id="gemini-auto-runner-btn">▶ 启动作图队列</button>
+    <div id="gemini-text-btn-container">
+      <div id="gemini-text-start-row" class="gemini-btn-row">
+        <button id="gemini-auto-runner-btn">▶ 启动作图队列</button>
+        <button id="gemini-experiment-btn" class="gemini-experiment-btn">🧪 实验</button>
+      </div>
+      <button id="gemini-text-pause-btn" class="gemini-running-pause-btn" style="display:none;">⏸ 暂停队列</button>
+      <div id="gemini-text-pause-actions" class="gemini-pause-actions" style="display:none;">
+        <button id="gemini-text-resume-btn" class="gemini-resume-btn">▶ 继续</button>
+        <button id="gemini-text-terminate-btn" class="gemini-terminate-btn">🛑 终止</button>
+      </div>
+    </div>
   </div>
 
   <!-- ===== Tab 2: 图片转换 ===== -->
@@ -95,7 +105,13 @@ const SIDEBAR_HTML = `
 3. 图中全部人物都要转换
 4. 不是绘画风格, 不是动漫风格</textarea>
 
-    <button id="gemini-image-runner-btn">▶ 启动图片转换队列</button>
+    <div id="gemini-image-btn-container">
+      <button id="gemini-image-runner-btn">▶ 启动图片转换队列</button>
+      <div id="gemini-image-pause-actions" class="gemini-pause-actions" style="display:none;">
+        <button id="gemini-image-resume-btn" class="gemini-resume-btn">▶ 继续</button>
+        <button id="gemini-image-terminate-btn" class="gemini-terminate-btn">🛑 终止</button>
+      </div>
+    </div>
   </div>
 
   <div id="gemini-dashboard" class="gemini-dashboard" style="display:none;">
@@ -216,40 +232,44 @@ window._geminiOnPromptStart = function() {
 
 window._geminiOnQueueEnd = function() {
   stopTimer();
-  const btn = document.getElementById('gemini-auto-runner-btn');
-  const imageBtn = document.getElementById('gemini-image-runner-btn');
   const textarea = document.getElementById('gemini-prompt-input');
   const progressBar = document.getElementById('gemini-progress-fill');
   const progressText = document.getElementById('gemini-progress-text');
 
-  const resetAll = () => {
+  // 文本 Tab: 恢复三态容器到 idle
+  const textStartRow = document.getElementById('gemini-text-start-row');
+  const textPauseBtn = document.getElementById('gemini-text-pause-btn');
+  const textPauseActions = document.getElementById('gemini-text-pause-actions');
+  const btn = document.getElementById('gemini-auto-runner-btn');
+  const experimentBtn = document.getElementById('gemini-experiment-btn');
+  const imageBtn = document.getElementById('gemini-image-runner-btn');
+  const imagePauseActions = document.getElementById('gemini-image-pause-actions');
+
+  if (textPauseBtn) { textPauseBtn.style.display = 'none'; textPauseBtn.disabled = false; }
+  if (textPauseActions) textPauseActions.style.display = 'none';
+  if (imagePauseActions) imagePauseActions.style.display = 'none';
+
+  const resetToIdle = () => {
     resetTimerDisplay();
     if (progressBar) progressBar.style.width = '0%';
     if (progressText) progressText.innerText = '准备就绪: 0 / 0';
+    if (textStartRow) textStartRow.style.display = '';
+    if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.background = ''; btn.disabled = false; }
+    if (experimentBtn) { experimentBtn.innerText = '🧪 实验'; experimentBtn.className = 'gemini-experiment-btn'; experimentBtn.disabled = false; }
   };
 
-  // 重置文本队列按钮
-  if (btn) {
-    if (!window._geminiQueueAbort) {
-      btn.innerText = '✅ 队列完成';
-      btn.className = 'completed';
-      setTimeout(() => {
-        btn.innerText = '▶ 启动作图队列';
-        btn.className = '';
-        btn.style.background = '';
-        resetAll();
-      }, 3000);
-    } else {
-      btn.innerText = '▶ 启动作图队列';
-      btn.className = '';
-      btn.style.background = '';
-      resetAll();
-    }
-    btn.disabled = false;
+  if (!window._geminiQueueAbort) {
+    // 完成 → 短暂显示完成状态后恢复
+    if (textStartRow) textStartRow.style.display = '';
+    if (btn) { btn.innerText = '✅ 完成'; btn.className = 'completed'; }
+    setTimeout(resetToIdle, 3000);
+  } else {
+    resetToIdle();
   }
 
   // 重置图片队列按钮
   if (imageBtn) {
+    imageBtn.style.display = '';
     if (!window._geminiQueueAbort) {
       imageBtn.innerText = '✅ 队列完成';
       imageBtn.className = 'completed';
@@ -355,23 +375,106 @@ function injectControlUI() {
     };
   });
 
-  // ===== 文本生图 启动/停止按钮 =====
+  // ===== 文本生图 启动/暂停/继续/终止按钮 =====
   const btn = document.getElementById('gemini-auto-runner-btn');
   const textarea = document.getElementById('gemini-prompt-input');
+  const prefixInput = document.getElementById('gemini-prefix-input');
+  const suffixInput = document.getElementById('gemini-suffix-input');
+  const experimentBtn = document.getElementById('gemini-experiment-btn');
+  const textStartRow = document.getElementById('gemini-text-start-row');
+  const textPauseBtn = document.getElementById('gemini-text-pause-btn');
+  const textPauseActions = document.getElementById('gemini-text-pause-actions');
+  const textResumeBtn = document.getElementById('gemini-text-resume-btn');
+  const textTerminateBtn = document.getElementById('gemini-text-terminate-btn');
 
+  // ===== 状态持久化 (localStorage) =====
+  if (localStorage.getItem('gemini_saved_prefix')) {
+    prefixInput.value = localStorage.getItem('gemini_saved_prefix');
+  }
+  if (localStorage.getItem('gemini_saved_prompt')) {
+    textarea.value = localStorage.getItem('gemini_saved_prompt');
+  }
+  if (localStorage.getItem('gemini_saved_suffix')) {
+    suffixInput.value = localStorage.getItem('gemini_saved_suffix');
+  }
+  if (localStorage.getItem('gemini_saved_newchat_interval')) {
+    const newChatInput = document.getElementById('gemini-newchat-interval');
+    if (newChatInput) newChatInput.value = localStorage.getItem('gemini_saved_newchat_interval');
+  }
+
+  // 监听输入并自动保存
+  prefixInput.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_prefix', prefixInput.value);
+  });
+  textarea.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_prompt', textarea.value);
+  });
+  suffixInput.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_suffix', suffixInput.value);
+  });
+  
+  const newChatInput = document.getElementById('gemini-newchat-interval');
+  if (newChatInput) {
+    newChatInput.addEventListener('input', () => {
+      localStorage.setItem('gemini_saved_newchat_interval', newChatInput.value);
+    });
+  }
+
+  // 跟踪当前运行模式
+  let _textRunMode = null;
+
+  // 三种互斥状态：idle / running / paused
+  function showTextState(state) {
+    textStartRow.style.display   = state === 'idle'    ? '' : 'none';
+    textPauseBtn.style.display   = state === 'running' ? '' : 'none';
+    textPauseActions.style.display = state === 'paused'  ? 'flex' : 'none';
+  }
+
+  // 启动作图队列
   btn.onclick = async () => {
-    if (window._geminiIsRunning) {
-      window._geminiQueueAbort = true;
-      btn.innerText = '⏳ 正在停止...';
-      btn.disabled = true;
-      window._geminiAddLog('⏹ 用户请求停止队列...', 'warn');
-    } else {
-      btn.innerText = '⏹ 停止队列';
-      btn.className = 'running';
-      textarea.disabled = true;
-      resetTimerDisplay();
-      await runGeminiQueue();
-    }
+    _textRunMode = 'queue';
+    textPauseBtn.innerText = '⏸ 暂停队列';
+    textPauseBtn.disabled = false;
+    showTextState('running');
+    textarea.disabled = true;
+    resetTimerDisplay();
+    await runGeminiQueue();
+  };
+
+  // 实验模式
+  experimentBtn.onclick = async () => {
+    _textRunMode = 'experiment';
+    textPauseBtn.innerText = '⏸ 暂停实验';
+    textPauseBtn.disabled = false;
+    showTextState('running');
+    textarea.disabled = true;
+    resetTimerDisplay();
+    await runExperimentQueue();
+  };
+
+  // 暂停按钮（运行中点击）
+  textPauseBtn.onclick = () => {
+    window._geminiQueuePaused = true;
+    window._geminiAddLog('⏸ 已暂停，等待用户操作...', 'warn');
+    showTextState('paused');
+  };
+
+  // 继续
+  textResumeBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiAddLog('▶ 已继续', 'success');
+    textPauseBtn.innerText = _textRunMode === 'experiment' ? '⏸ 暂停实验' : '⏸ 暂停队列';
+    showTextState('running');
+  };
+
+  // 终止
+  textTerminateBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiQueueAbort = true;
+    window._geminiAddLog('🛑 已终止', 'warn');
+    textPauseBtn.innerText = '⏳ 正在停止...';
+    textPauseBtn.disabled = true;
+    showTextState('running');
   };
 
   // ===== 图片转换：文件选择与拖拽 =====
@@ -503,21 +606,53 @@ function injectControlUI() {
     });
   }
 
-  // ===== 图片转换 启动/停止按钮 =====
+  // ===== 图片转换 启动/暂停/继续/终止按钮 =====
   const imageRunBtn = document.getElementById('gemini-image-runner-btn');
+  const imagePauseActions = document.getElementById('gemini-image-pause-actions');
+  const imageResumeBtn = document.getElementById('gemini-image-resume-btn');
+  const imageTerminateBtn = document.getElementById('gemini-image-terminate-btn');
+
+  function showImagePauseUI() {
+    imageRunBtn.style.display = 'none';
+    imagePauseActions.style.display = 'flex';
+  }
+
+  function hideImagePauseUI() {
+    imagePauseActions.style.display = 'none';
+    imageRunBtn.style.display = '';
+  }
 
   imageRunBtn.onclick = async () => {
     if (window._geminiIsRunning) {
-      window._geminiQueueAbort = true;
-      imageRunBtn.innerText = '⏳ 正在停止...';
-      imageRunBtn.disabled = true;
-      window._geminiAddLog('⏹ 用户请求停止队列...', 'warn');
+      // 暂停
+      window._geminiQueuePaused = true;
+      window._geminiAddLog('⏸ 队列已暂停，等待用户操作...', 'warn');
+      showImagePauseUI();
     } else {
-      imageRunBtn.innerText = '⏹ 停止队列';
+      imageRunBtn.innerText = '⏸ 暂停队列';
       imageRunBtn.className = 'running';
       resetTimerDisplay();
       await runImageQueue();
     }
+  };
+
+  imageResumeBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiAddLog('▶ 队列已继续', 'success');
+    hideImagePauseUI();
+    imageRunBtn.innerText = '⏸ 暂停队列';
+    imageRunBtn.className = 'running';
+    imageRunBtn.style.display = '';
+  };
+
+  imageTerminateBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiQueueAbort = true;
+    window._geminiAddLog('🛑 队列已终止', 'warn');
+    hideImagePauseUI();
+    imageRunBtn.innerText = '⏳ 正在停止...';
+    imageRunBtn.disabled = true;
+    imageRunBtn.style.display = '';
   };
 
   // ===== 风格多选下拉框 =====
