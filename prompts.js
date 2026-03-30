@@ -168,5 +168,156 @@ const prompts = [
     "group": "历史与艺术运动",
     "style": "Victorian Period",
     "prompt": "Victorian period art style. Rich and detailed compositions with ornate embellishments. Emphasis on realism and intricate details. Use of vibrant colors and dramatic lighting. Themes of romanticism, mythology, and daily life. Symbolic elements conveying moral or social messages. Elegant and refined aesthetic with a focus on beauty and decorum."
+  },
+
+  {
+    "group": "历史与艺术运动",
+    "style": "Alphonse Mucha",
+    "prompt": "In the style of Alphonse Mucha. Art Nouveau aesthetic. Elegant, flowing lines and organic floral motifs. Beautiful female subjects with halo-like circular backgrounds. Intricate decorative borders. Muted pastel colors with gold filigree. Highly detailed and ornamental composition."
+  },
+  {
+    "group": "历史与艺术运动",
+    "style": "Caravaggio",
+    "prompt": "In the style of Caravaggio. Baroque realism. Intense Tenebrism and dramatic Chiaroscuro. High-contrast lighting with deep, dark shadows and bright, focal highlights. Gritty and physical realism. Emotional intensity and theatrical composition. Earthy color tones."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Wassily Kandinsky",
+    "prompt": "In the style of Wassily Kandinsky. Abstract Expressionism. Synesthetic explosion of geometric shapes and fluid lines. Vibrant, non-representational color fields. Spiritual and musical rhythm in visual form. Complex layering of circles, triangles, and abstract vectors."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Zdzisław Beksiński",
+    "prompt": "In the style of Zdzisław Beksiński. Dystopian Surrealism. Haunting and nightmarish landscapes. Intricate, decaying textures and skeletal structures. Vast, desolate environments with a sense of cosmic horror. Deep oranges, browns, and melancholic blues. Ethereal and somber mood."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Yayoi Kusama",
+    "prompt": "In the style of Yayoi Kusama. Contemporary Pop Art. Infinity net patterns and obsessive polka dots. Bold, psychedelic color schemes. Organic, bulbous forms like pumpkins and tentacles. Immersive and repetitive visual motifs. Playful yet surreal installations."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "WLOP (Wang Ling)",
+    "prompt": "In the style of WLOP. Digital fantasy illustration. Soft, ethereal lighting with a focus on cinematic atmosphere. Elegant and melancholic female characters. Delicate brushwork with detailed jewelry and flowing fabrics. High-contrast glows and a sharp focus on the subject amidst a painterly background."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "Simon Stålenhag",
+    "prompt": "In the style of Simon Stålenhag. Sci-fi pastoralism. Retro-futuristic technology integrated into mundane Swedish rural landscapes. Foggy, overcast lighting. Realistic textures with giant rusted robots or hovering ships. Cinematic and nostalgic atmosphere. Muted, naturalistic color palette."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "Moebius (Jean Giraud)",
+    "prompt": "In the style of Moebius. French comic art (Ligne Claire). Clean, thin ink outlines with meticulous hatching. Vast, surreal desert landscapes and sci-fi architecture. Dreamlike and whimsical character designs. Flat but vibrant color washes. Masterful use of negative space and perspective."
+  },
+  {
+    "group": "建筑与空间设计",
+    "style": "Zaha Hadid",
+    "prompt": "In the style of Zaha Hadid. Neo-futuristic architecture. Parametric design with fluid, sweeping curves and elongated structures. Dynamic and fragmented geometry. Smooth metallic and white concrete surfaces. Sense of movement and technological advancement. Avant-garde spatial composition."
+  },
+  {
+    "group": "电影与视觉风格",
+    "style": "Tim Burton",
+    "prompt": "In the style of Tim Burton. Gothic whimsy. Expressionist distorted proportions and spindly figures. High-contrast black and white with pops of moody colors. Quirkily macabre and lonely atmosphere. Spiral motifs, striped patterns, and large, expressive eyes."
+  },
+  {
+    "group": "历史与艺术运动",
+    "style": "Gothic Art",
+    "prompt": "Gothic art style. Emphasis on religious themes and symbolism. Use of elongated figures and dramatic poses. Rich, vibrant colors with gold accents. Intricate details and ornate patterns. Stained glass effects and pointed arches. Mystical and spiritual atmosphere. Detailed backgrounds with architectural elements."
+  },
+  {
+    "group": "历史与艺术运动",
+    "style": "Alphonse Mucha",
+    "prompt": "In the style of Alphonse Mucha. Art Nouveau aesthetic. Elegant, flowing lines and organic floral motifs. Beautiful female subjects with halo-like circular backgrounds. Intricate decorative borders. Muted pastel colors with gold filigree. Highly detailed and ornamental composition."
+  },
+  {
+    "group": "历史与艺术运动",
+    "style": "Caravaggio",
+    "prompt": "In the style of Caravaggio. Baroque realism. Intense Tenebrism and dramatic Chiaroscuro. High-contrast lighting with deep, dark shadows and bright, focal highlights. Gritty and physical realism. Emotional intensity and theatrical composition. Earthy color tones."
+  },
+  {
+    "group": "经典绘画大师",
+    "style": "Vincent van Gogh",
+    "prompt": "In the style of Vincent van Gogh. Post-Impressionist technique. Bold, thick impasto brushstrokes. Swirling patterns and turbulent textures. High contrast color palette with vibrant yellows and deep blues. Emotional and expressive atmosphere. Starry night aesthetics and expressive energy."
+  },
+  {
+    "group": "经典绘画大师",
+    "style": "Claude Monet",
+    "prompt": "In the style of Claude Monet. Impressionist light and shadow. Soft, blurry brushwork focusing on the fleeting effects of light. Emphasis on natural atmosphere and color transitions. Plein air painting aesthetic. Luminous and serene garden or water reflections."
+  },
+  {
+    "group": "现代与超现实主义",
+    "style": "Salvador Dalí",
+    "prompt": "In the style of Salvador Dalí. Surrealist dreamscape. Bizarre and illogical compositions. Melting objects and distorted reality. Sharp, photographic precision in a desert-like landscape. Deep shadows and a sense of infinite space. Hallucinatory and symbolic imagery."
+  },
+  {
+    "group": "现代与超现实主义",
+    "style": "Gustav Klimt",
+    "prompt": "In the style of Gustav Klimt. Golden Phase aesthetic. Ornate and decorative patterns with gold leaf accents. Byzantine mosaic influences. Sensual and symbolic portraits. Intricate geometric shapes mixed with organic floral motifs. Luxurious and shimmering textures."
+  },
+  {
+    "group": "现代与超现实主义",
+    "style": "Edward Hopper",
+    "prompt": "In the style of Edward Hopper. American Realism. Cinematic lighting and strong contrast between light and shadow. Urban loneliness and cinematic solitude. Minimalist interiors with large windows. Muted but deliberate color palette. Melancholic and quiet atmosphere."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Wassily Kandinsky",
+    "prompt": "In the style of Wassily Kandinsky. Abstract Expressionism. Synesthetic explosion of geometric shapes and fluid lines. Vibrant, non-representational color fields. Spiritual and musical rhythm in visual form. Complex layering of circles, triangles, and abstract vectors."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Zdzisław Beksiński",
+    "prompt": "In the style of Zdzisław Beksiński. Dystopian Surrealism. Haunting and nightmarish landscapes. Intricate, decaying textures and skeletal structures. Vast, desolate environments with a sense of cosmic horror. Deep oranges, browns, and melancholic blues. Ethereal and somber mood."
+  },
+  {
+    "group": "现代与抽象主义",
+    "style": "Yayoi Kusama",
+    "prompt": "In the style of Yayoi Kusama. Contemporary Pop Art. Infinity net patterns and obsessive polka dots. Bold, psychedelic color schemes. Organic, bulbous forms like pumpkins and tentacles. Immersive and repetitive visual motifs. Playful yet surreal installations."
+  },
+  {
+    "group": "插画与波普艺术",
+    "style": "Andy Warhol",
+    "prompt": "In the style of Andy Warhol. Pop Art aesthetic. Silkscreen printing texture. Vibrant, saturated neon colors with high contrast. Repetitive imagery and flat color blocks. Graphic and commercial art style. Mid-century modern celebrity and consumerism vibe."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "WLOP (Wang Ling)",
+    "prompt": "In the style of WLOP. Digital fantasy illustration. Soft, ethereal lighting with a focus on cinematic atmosphere. Elegant and melancholic female characters. Delicate brushwork with detailed jewelry and flowing fabrics. High-contrast glows and a sharp focus on the subject amidst a painterly background."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "Simon Stålenhag",
+    "prompt": "In the style of Simon Stålenhag. Sci-fi pastoralism. Retro-futuristic technology integrated into mundane Swedish rural landscapes. Foggy, overcast lighting. Realistic textures with giant rusted robots or hovering ships. Cinematic and nostalgic atmosphere. Muted, naturalistic color palette."
+  },
+  {
+    "group": "当代插画与概念艺术",
+    "style": "Moebius (Jean Giraud)",
+    "prompt": "In the style of Moebius. French comic art (Ligne Claire). Clean, thin ink outlines with meticulous hatching. Vast, surreal desert landscapes and sci-fi architecture. Dreamlike and whimsical character designs. Flat but vibrant color washes. Masterful use of negative space and perspective."
+  },
+  {
+    "group": "日本艺术与二次元",
+    "style": "Katsushika Hokusai",
+    "prompt": "In the style of Katsushika Hokusai. Ukiyo-e woodblock print. Strong outlines and flat color planes. Dynamic wave patterns and traditional Japanese motifs. Fine ink lines and a sense of movement. Classic Edo period aesthetic with a focus on nature and landscapes."
+  },
+  {
+    "group": "日本艺术与二次元",
+    "style": "Studio Ghibli",
+    "prompt": "In the style of Studio Ghibli. Hand-drawn anime aesthetic. Lush, detailed natural landscapes and soft, painterly clouds. Whimsical and nostalgic atmosphere. Warm, inviting lighting. Clean character designs with expressive emotions. Vibrant yet soothing color palette."
+  },
+  {
+    "group": "暗黑与未来主义",
+    "style": "H.R. Giger",
+    "prompt": "In the style of H.R. Giger. Biomechanical art. Fusion of organic human forms with cold metallic machinery. Monochromatic silver and dark gray tones. Disturbing, surreal, and extraterrestrial themes. Intricate spinal and tubular textures. Dark and eerie atmosphere."
+  },
+  {
+    "group": "建筑与电影风格",
+    "style": "Zaha Hadid",
+    "prompt": "In the style of Zaha Hadid. Neo-futuristic architecture. Parametric design with fluid, sweeping curves and elongated structures. Dynamic and fragmented geometry. Smooth metallic and white concrete surfaces. Sense of movement and technological advancement. Avant-garde spatial composition."
+  },
+  {
+    "group": "建筑与电影风格",
+    "style": "Wes Anderson",
+    "prompt": "In the style of Wes Anderson. Perfectly symmetrical composition. Pastel color palettes and retro aesthetics. Flat, theatrical staging. Meticulously organized details. Whimsical and quirky visual storytelling. High-centered framing and vintage textures."
   }
-];
+]
