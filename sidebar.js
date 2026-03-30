@@ -51,17 +51,12 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
-  <div class="gemini-setting-row">
+  <div class="gemini-setting-row" style="flex-shrink:0;">
     <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
-  <div class="gemini-setting-row">
-    <label for="gemini-download-folder">批量下载保存目录</label>
-    <input type="text" id="gemini-download-folder" class="gemini-setting-number" style="width:120px;text-align:left;" value="gemini_images" title="默认下载目录下的子文件夹" />
-  </div>
-
-  <div class="gemini-tabs">
+  <div class="gemini-tabs" style="flex-shrink:0;">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
   </div>
@@ -128,29 +123,31 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
-  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none;">
-    <div class="gemini-dashboard-row">
-      <span class="gemini-dashboard-label">📋 任务进度</span>
-      <span id="gemini-dash-progress" class="gemini-dashboard-value">0 / 0</span>
+  <button id="gemini-download-btn" class="gemini-download-main-btn" style="margin-top:10px; margin-bottom:10px; flex-shrink:0;">📥 打包下载本页原图 (ZIP)</button>
+
+  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none; flex-shrink:0;">
+    <div class="gemini-dashboard-grid">
+      <div class="gemini-dashboard-row">
+        <span class="gemini-dashboard-label">📋 任务进度</span>
+        <span id="gemini-dash-progress" class="gemini-dashboard-value">0 / 0</span>
+      </div>
+      <div class="gemini-dashboard-row">
+        <span class="gemini-dashboard-label">🖼 当前耗时</span>
+        <span id="gemini-dash-current" class="gemini-dashboard-value gemini-dash-blue">00:00</span>
+      </div>
+      <div class="gemini-dashboard-row">
+        <span class="gemini-dashboard-label">⏱ 总计耗时</span>
+        <span id="gemini-dash-total" class="gemini-dashboard-value gemini-dash-orange">00:00</span>
+      </div>
+      <div class="gemini-dashboard-row">
+        <span class="gemini-dashboard-label">📊 平均作图</span>
+        <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
+      </div>
     </div>
-    <div class="gemini-dashboard-row">
-      <span class="gemini-dashboard-label">🖼 当前耗时</span>
-      <span id="gemini-dash-current" class="gemini-dashboard-value gemini-dash-blue">00:00</span>
-    </div>
-    <div class="gemini-dashboard-row">
-      <span class="gemini-dashboard-label">⏱ 总计耗时</span>
-      <span id="gemini-dash-total" class="gemini-dashboard-value gemini-dash-orange">00:00</span>
-    </div>
-    <div class="gemini-dashboard-row">
-      <span class="gemini-dashboard-label">📊 平均作图</span>
-      <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
-    </div>
-    <div class="gemini-progress-bg">
+    <div class="gemini-progress-bg" style="margin-top:6px;">
       <div id="gemini-progress-fill"></div>
     </div>
   </div>
-
-  <button id="gemini-download-btn" class="gemini-download-main-btn" style="margin-top:15px; margin-bottom:10px;">📥 打包下载本页原图 (ZIP)</button>
 
   <div class="gemini-log-container">
     <div class="gemini-label">运行日志</div>
@@ -341,6 +338,21 @@ function injectControlUI() {
   if (downloadBtn) {
     downloadBtn.addEventListener('click', async () => {
       if (downloadBtn.disabled) return;
+      
+      let fileHandle;
+      try {
+        if (window.showSaveFilePicker) {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: `gemini_images_${Date.now()}.zip`,
+            types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }]
+          });
+        }
+      } catch (e) {
+        // 用户取消或拒绝
+        if (e.name === 'AbortError') return;
+        window._geminiAddLog('⚠️ 无法呼出保存对话框，将采用默认下载方式。', 'warn');
+      }
+
       downloadBtn.disabled = true;
 
       const startTime = Date.now();
@@ -376,18 +388,16 @@ function injectControlUI() {
         });
 
         if (downloadList.length > 0) {
-          const customFolder = (downloadFolderInput && downloadFolderInput.value.trim()) ? downloadFolderInput.value.trim() : 'gemini_images';
-          window._geminiAddLog(`✅ 找到 ${downloadList.length} 张图片，正在下载并打包为 ${customFolder}.zip...`, 'info');
+          window._geminiAddLog(`✅ 找到 ${downloadList.length} 张图片，正在下载并准备打包...`, 'info');
 
           if (typeof JSZip === 'undefined') {
              throw new Error("JSZip 库未加载，无法执行打包");
           }
 
           const zip = new JSZip();
-          const folder = zip.folder(customFolder);
-          
+          // 用根目录代替之前的自定义文件夹层级
           let completed = 0;
-          const maxConcurrency = 5; // 控制并发，防止并发过多导致浏览器连接占满或卡顿
+          const maxConcurrency = 5; // 控制并发
           for (let i = 0; i < downloadList.length; i += maxConcurrency) {
             const chunk = downloadList.slice(i, i + maxConcurrency);
             await Promise.all(chunk.map(async (url, idx) => {
@@ -400,7 +410,7 @@ function injectControlUI() {
                     else reject(res ? res.error : 'Unknown fetch error');
                   });
                 });
-                folder.file(`image_${Date.now()}_${globalIdx + 1}.jpg`, response, { base64: true });
+                zip.file(`image_${Date.now()}_${globalIdx + 1}.jpg`, response, { base64: true });
               } catch (err) {
                 console.error("Fetch image error", err);
               }
@@ -409,17 +419,22 @@ function injectControlUI() {
             window._geminiAddLog(`🕒 下载进度: ${completed}/${downloadList.length}`, 'info');
           }
           
-          window._geminiAddLog(`📦 获取结束，开始在本地生成 ZIP...`, 'info');
+          window._geminiAddLog(`📦 获取结束，开始生成 ZIP 归档...`, 'info');
           const content = await zip.generateAsync({ type: "blob" });
           
-          const a = document.createElement("a");
-          const objectUrl = URL.createObjectURL(content);
-          a.href = objectUrl;
-          a.download = `${customFolder}.zip`;
-          a.click();
-          
-          // 释放内存
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+          if (fileHandle) {
+             window._geminiAddLog(`💾 正在安全写入您的指定目录...`, 'info');
+             const writable = await fileHandle.createWritable();
+             await writable.write(content);
+             await writable.close();
+          } else {
+             const a = document.createElement("a");
+             const objectUrl = URL.createObjectURL(content);
+             a.href = objectUrl;
+             a.download = `gemini_images_${Date.now()}.zip`;
+             a.click();
+             setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+          }
 
           window._geminiAddLog(`🚀 下载完成！(总耗时 ${formatTime(Date.now() - startTime)})`, 'success');
         } else {

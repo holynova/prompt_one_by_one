@@ -760,3 +760,15 @@ html.gemini-sidebar-open {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* 把任务进度看板排成两列 */
+.gemini-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 6px;
+  column-gap: 12px;
+}
+.gemini-dashboard-grid .gemini-dashboard-row {
+  margin-bottom: 0;
+  padding: 4px;
+}
