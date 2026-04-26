@@ -203,12 +203,13 @@ function _getExistingImageSrcs() {
 }
 
 // --- Gemini / Grok: 组合 MutationObserver 和 轮询方式 ---
-function startObserverDefault(site) {
+function startObserverDefault(site, maxWaitMs = QUEUE_CONFIG.timeoutMs) {
   // 快照当前所有图片 src，避免把上传预览误判为生成结果
   const existingImgSrcs = _getExistingImageSrcs();
 
   return new Promise((resolve) => {
-    window._geminiAddLog(`开启监听，等待生成结果 (超时: ${QUEUE_CONFIG.timeoutMs / 1000}s)...`, 'info');
+    const observerTimeoutMs = Math.max(0, maxWaitMs);
+    window._geminiAddLog(`开启监听，等待生成结果 (超时: ${Math.ceil(observerTimeoutMs / 1000)}s)...`, 'info');
 
     let isGenerating = true;
     let observer;
@@ -268,15 +269,16 @@ function startObserverDefault(site) {
 
     // 3. 超时断开检测
     checkTimeout = setTimeout(() => {
-      cleanupAndResolve('timeout');
-    }, QUEUE_CONFIG.timeoutMs);
+      cleanupAndResolve(observerTimeoutMs < QUEUE_CONFIG.timeoutMs ? 'interval_reached' : 'timeout');
+    }, observerTimeoutMs);
   });
 }
 
 // --- ChatGPT: 组合检测（DOM 稳定性 + 轮询 img） ---
-function startObserverChatGPT(site) {
+function startObserverChatGPT(site, maxWaitMs = QUEUE_CONFIG.timeoutMs) {
   return new Promise((resolve) => {
     window._geminiAddLog(`[ChatGPT] 开启组合检测 (轮询img + DOM稳定性)...`, 'info');
+    const observerTimeoutMs = Math.max(0, maxWaitMs);
 
     const beforeImgSrcs = _getExistingImageSrcs();
     let resolved = false;
@@ -361,17 +363,17 @@ function startObserverChatGPT(site) {
         window._geminiAddLog('监听超时', 'warn');
         done('timeout');
       }
-    }, QUEUE_CONFIG.timeoutMs);
+    }, observerTimeoutMs);
   });
 }
 
 // --- 调度入口 ---
-function startObserver() {
+function startObserver(maxWaitMs = QUEUE_CONFIG.timeoutMs) {
   const site = getSiteConfig();
   if (site === SITE_CONFIGS.chatgpt) {
-    return startObserverChatGPT(site);
+    return startObserverChatGPT(site, maxWaitMs);
   }
-  return startObserverDefault(site);
+  return startObserverDefault(site, maxWaitMs);
 }
 
 // ========== 格式化时间 ==========
@@ -387,6 +389,61 @@ function getNewChatInterval() {
   const input = document.getElementById('gemini-newchat-interval');
   const val = parseInt(input?.value, 10);
   return (val && val > 0) ? val : 0; // 0 = 不启用
+}
+
+function getTaskIntervalSettings() {
+  const intervalInput = document.getElementById('gemini-task-interval');
+  const jitterInput = document.getElementById('gemini-task-jitter');
+
+  const baseMinutes = parseFloat(intervalInput?.value);
+  const jitterMinutes = parseFloat(jitterInput?.value);
+
+  return {
+    baseMinutes: Number.isFinite(baseMinutes) && baseMinutes > 0 ? baseMinutes : 0,
+    jitterMinutes: Number.isFinite(jitterMinutes) && jitterMinutes > 0 ? jitterMinutes : 0,
+  };
+}
+
+function sampleTaskIntervalMs(settings = getTaskIntervalSettings()) {
+  if (!settings.baseMinutes) return 0;
+
+  const jitter = settings.jitterMinutes
+    ? (Math.random() * 2 - 1) * settings.jitterMinutes
+    : 0;
+  const sampledMinutes = Math.max(0, settings.baseMinutes + jitter);
+  return Math.round(sampledMinutes * 60 * 1000);
+}
+
+async function waitUntilTimestamp(targetTimestamp, buttonId, idleText, countdownPrefix, currentTaskIndex, totalTasks) {
+  if (!targetTimestamp || window._geminiQueueAbort) return;
+
+  const btn = document.getElementById(buttonId);
+  const totalDurationMs = Math.max(1, targetTimestamp - Date.now());
+
+  while (!window._geminiQueueAbort) {
+    await waitWhilePaused();
+    if (window._geminiQueueAbort) break;
+
+    const remainingMs = targetTimestamp - Date.now();
+    if (remainingMs <= 0) break;
+
+    const remainingSec = Math.ceil(remainingMs / 1000);
+    const progress = ((totalDurationMs - remainingMs) / totalDurationMs) * 100;
+
+    if (window._updateDashboardProgress) {
+      window._updateDashboardProgress(currentTaskIndex, totalTasks);
+    }
+    if (btn) {
+      btn.innerText = `${countdownPrefix} ${remainingSec}s`;
+      btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
+    }
+    await sleep(Math.min(1000, remainingMs));
+  }
+
+  if (btn && !window._geminiQueueAbort) {
+    btn.innerText = idleText;
+    btn.style.background = '';
+  }
 }
 
 async function openNewChat() {
@@ -459,14 +516,20 @@ async function runGeminiQueue() {
 
   const queueStartTime = Date.now();
   const site = getSiteConfig();
+  const intervalSettings = getTaskIntervalSettings();
   window._geminiAddLog(`🚀 [${site.name}] 队列启动，共 ${prompts.length} 个任务`, 'success');
   if (prefix) window._geminiAddLog(`前缀: "${prefix}"`, 'info');
   if (suffix) window._geminiAddLog(`后缀: "${suffix}"`, 'info');
+  if (intervalSettings.baseMinutes > 0) {
+    const jitterText = intervalSettings.jitterMinutes > 0 ? `，随机波动 ±${intervalSettings.jitterMinutes} 分钟` : '';
+    window._geminiAddLog(`⏱ 启动间隔: ${intervalSettings.baseMinutes} 分钟${jitterText}`, 'info');
+  } else {
+    window._geminiAddLog('⏱ 未设置启动间隔，上一张结束后立即开始下一张', 'info');
+  }
 
   // 通知 sidebar 开始计时
   if (window._geminiOnQueueStart) window._geminiOnQueueStart();
 
-  let nextStage2Delay = 0; // 记录需要带到下一次输入的后半段冷却时间
   let totalGenerationTime = 0;
   let successfulTasks = 0;
 
@@ -493,12 +556,21 @@ async function runGeminiQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const inputSuccess = await executeInput(fullPrompt, nextStage2Delay, i + 1, prompts.length);
+    const sampledIntervalMs = i < prompts.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
+    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
+    if (sampledIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    }
+
+    const inputSuccess = await executeInput(fullPrompt, 0, i + 1, prompts.length);
 
     if (inputSuccess) {
       const waitStart = Date.now();
       await sleep(1000);
-      const result = await startObserver();
+      const observerWaitMs = nextStartTimestamp
+        ? Math.max(0, nextStartTimestamp - Date.now())
+        : QUEUE_CONFIG.timeoutMs;
+      const result = await startObserver(observerWaitMs);
       const generateElapsed = Date.now() - waitStart;
       const elapsed = Date.now() - promptStartTime;
 
@@ -511,6 +583,7 @@ async function runGeminiQueue() {
         'success': { icon: '🎉', text: '图片生成成功', type: 'success' },
         'failed':  { icon: '❌', text: '生成失败/被拦截', type: 'error' },
         'timeout': { icon: '⏳', text: '监听超时', type: 'warn' },
+        'interval_reached': { icon: '⏭', text: '达到下一张启动时间，转入下一个任务', type: 'warn' },
       };
       const info = statusMap[result] || { icon: '❓', text: result, type: 'info' };
       window._geminiAddLog(`${info.icon} 任务 ${i + 1}: ${info.text} (生成耗时 ${formatElapsed(generateElapsed)} / 总耗时 ${formatElapsed(elapsed)})`, info.type);
@@ -532,33 +605,11 @@ async function runGeminiQueue() {
       await openNewChat();
     }
 
-    // 队列间歇 (两段冷却)
-    if (i < prompts.length - 1 && !window._geminiQueueAbort) {
-      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
-      const totalSec = Math.ceil(delay / 1000);
-      const stage1Sec = Math.floor(totalSec / 2); // 填入前的延时
-      nextStage2Delay = totalSec - stage1Sec;     // 发送前的延时，交接给下一次循环
-
-      window._geminiAddLog(`⏸ 第一段冷却 (等待填入) ${stage1Sec}秒...`, 'info');
-
-      const btn = document.getElementById('gemini-auto-runner-btn');
-
-      // 仅倒数第一段延时的时间
-      for (let sec = stage1Sec; sec > 0 && !window._geminiQueueAbort; sec--) {
-        await waitWhilePaused();
-        if (window._geminiQueueAbort) break;
-        const progress = ((stage1Sec - sec) / stage1Sec) * 100;
-        if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, prompts.length);
-        if (btn) {
-          btn.innerText = `⏸ 填入倒数 ${sec}s`;
-          btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
-        }
-        await sleep(1000);
-      }
-      // 恢复按钮样式
-      if (btn && !window._geminiQueueAbort) {
-        btn.innerText = '⏸ 暂停队列';
-        btn.style.background = '';
+    if (i < prompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
+      const remainingMs = nextStartTimestamp - Date.now();
+      if (remainingMs > 0) {
+        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-auto-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
       }
     }
   }
@@ -654,8 +705,15 @@ async function runImageQueue() {
 
   const queueStartTime = Date.now();
   const site = getSiteConfig();
+  const intervalSettings = getTaskIntervalSettings();
   window._geminiAddLog(`🖼 [${site.name}] 图片转换队列启动，共 ${files.length} 张`, 'success');
   window._geminiAddLog(`提示词: "${prompt}"`, 'info');
+  if (intervalSettings.baseMinutes > 0) {
+    const jitterText = intervalSettings.jitterMinutes > 0 ? `，随机波动 ±${intervalSettings.jitterMinutes} 分钟` : '';
+    window._geminiAddLog(`⏱ 启动间隔: ${intervalSettings.baseMinutes} 分钟${jitterText}`, 'info');
+  } else {
+    window._geminiAddLog('⏱ 未设置启动间隔，上一张结束后立即开始下一张', 'info');
+  }
 
   if (window._geminiOnQueueStart) window._geminiOnQueueStart();
 
@@ -676,6 +734,11 @@ async function runImageQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
+    const sampledIntervalMs = i < files.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
+    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
+    if (sampledIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    }
 
     // 第一步：上传图片
     const uploadOk = await uploadImageToSite(file);
@@ -699,7 +762,10 @@ async function runImageQueue() {
     if (inputSuccess) {
       // 第四步：等待生成完成
       await sleep(1000);
-      const result = await startObserver();
+      const observerWaitMs = nextStartTimestamp
+        ? Math.max(0, nextStartTimestamp - Date.now())
+        : QUEUE_CONFIG.timeoutMs;
+      const result = await startObserver(observerWaitMs);
       const elapsed = Date.now() - promptStartTime;
 
       if (result === 'aborted') {
@@ -711,6 +777,7 @@ async function runImageQueue() {
         success: { icon: '✅', text: '生成成功', type: 'success' },
         failed: { icon: '⚠️', text: '生成失败', type: 'warn' },
         timeout: { icon: '⏰', text: '生成超时', type: 'warn' },
+        interval_reached: { icon: '⏭', text: '达到下一张启动时间，转入下一个任务', type: 'warn' },
       };
       const info = statusMap[result] || { icon: '❓', text: '未知状态', type: 'info' };
       window._geminiAddLog(`${info.icon} 任务 ${i + 1} (${file.name}): ${info.text} (耗时 ${formatElapsed(elapsed)})`, info.type);
@@ -725,28 +792,11 @@ async function runImageQueue() {
       await openNewChat();
     }
 
-    // 冷却
-    if (i < files.length - 1 && !window._geminiQueueAbort) {
-      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
-      const totalSec = Math.ceil(delay / 1000);
-      window._geminiAddLog(`⏸ 冷却 ${totalSec}s...`, 'info');
-
-      const btn = document.getElementById('gemini-image-runner-btn');
-
-      for (let sec = totalSec; sec > 0 && !window._geminiQueueAbort; sec--) {
-        await waitWhilePaused();
-        if (window._geminiQueueAbort) break;
-        const progress = ((totalSec - sec) / totalSec) * 100;
-        if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, files.length);
-        if (btn) {
-          btn.innerText = `⏸ 冷却 ${sec}s`;
-          btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
-        }
-        await sleep(1000);
-      }
-      if (btn && !window._geminiQueueAbort) {
-        btn.innerText = '⏸ 暂停队列';
-        btn.style.background = '';
+    if (i < files.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
+      const remainingMs = nextStartTimestamp - Date.now();
+      if (remainingMs > 0) {
+        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-image-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, files.length);
       }
     }
   }
@@ -803,16 +853,22 @@ async function runExperimentQueue() {
 
   const queueStartTime = Date.now();
   const site = getSiteConfig();
+  const intervalSettings = getTaskIntervalSettings();
   window._geminiAddLog(`🧪 [${site.name}] 实验模式启动，随机选取 ${experimentPrompts.length} 个任务`, 'success');
   experimentPrompts.forEach((p, i) => {
     window._geminiAddLog(`   ${i + 1}. "${p.substring(0, 50)}${p.length > 50 ? '...' : ''}"`, 'info');
   });
   if (prefix) window._geminiAddLog(`前缀: "${prefix}"`, 'info');
   if (suffix) window._geminiAddLog(`后缀: "${suffix}"`, 'info');
+  if (intervalSettings.baseMinutes > 0) {
+    const jitterText = intervalSettings.jitterMinutes > 0 ? `，随机波动 ±${intervalSettings.jitterMinutes} 分钟` : '';
+    window._geminiAddLog(`⏱ 启动间隔: ${intervalSettings.baseMinutes} 分钟${jitterText}`, 'info');
+  } else {
+    window._geminiAddLog('⏱ 未设置启动间隔，上一张结束后立即开始下一张', 'info');
+  }
 
   if (window._geminiOnQueueStart) window._geminiOnQueueStart();
 
-  let nextStage2DelayExp = 0;
   let totalGenerationTimeExp = 0;
   let successfulTasksExp = 0;
 
@@ -834,12 +890,21 @@ async function runExperimentQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const inputSuccess = await executeInput(fullPrompt, nextStage2DelayExp, i + 1, experimentPrompts.length);
+    const sampledIntervalMs = i < experimentPrompts.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
+    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
+    if (sampledIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    }
+
+    const inputSuccess = await executeInput(fullPrompt, 0, i + 1, experimentPrompts.length);
 
     if (inputSuccess) {
       const waitStart = Date.now();
       await sleep(1000);
-      const result = await startObserver();
+      const observerWaitMs = nextStartTimestamp
+        ? Math.max(0, nextStartTimestamp - Date.now())
+        : QUEUE_CONFIG.timeoutMs;
+      const result = await startObserver(observerWaitMs);
       const generateElapsed = Date.now() - waitStart;
       const elapsed = Date.now() - promptStartTime;
 
@@ -852,6 +917,7 @@ async function runExperimentQueue() {
         'success': { icon: '🎉', text: '图片生成成功', type: 'success' },
         'failed':  { icon: '❌', text: '生成失败/被拦截', type: 'error' },
         'timeout': { icon: '⏳', text: '监听超时', type: 'warn' },
+        'interval_reached': { icon: '⏭', text: '达到下一张启动时间，转入下一个任务', type: 'warn' },
       };
       const info = statusMap[result] || { icon: '❓', text: result, type: 'info' };
       window._geminiAddLog(`${info.icon} 实验 ${i + 1}: ${info.text} (生成耗时 ${formatElapsed(generateElapsed)} / 总耗时 ${formatElapsed(elapsed)})`, info.type);
@@ -873,19 +939,11 @@ async function runExperimentQueue() {
       await openNewChat();
     }
 
-    // 冷却（最后一个任务不需要）
-    if (i < experimentPrompts.length - 1 && !window._geminiQueueAbort) {
-      const delay = Math.floor(Math.random() * (QUEUE_CONFIG.maxDelay - QUEUE_CONFIG.minDelay + 1)) + QUEUE_CONFIG.minDelay;
-      const totalSec = Math.ceil(delay / 1000);
-      const stage1SecExp = Math.floor(totalSec / 2);
-      nextStage2DelayExp = totalSec - stage1SecExp;
-
-      window._geminiAddLog(`⏸ 第一段冷却 (等待填入) ${stage1SecExp}秒...`, 'info');
-
-      for (let sec = stage1SecExp; sec > 0 && !window._geminiQueueAbort; sec--) {
-        await waitWhilePaused();
-        if (window._geminiQueueAbort) break;
-        await sleep(1000);
+    if (i < experimentPrompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
+      const remainingMs = nextStartTimestamp - Date.now();
+      if (remainingMs > 0) {
+        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-text-pause-btn', '⏸ 暂停实验', '⏸ 下一张倒数', i + 1, experimentPrompts.length);
       }
     }
   }

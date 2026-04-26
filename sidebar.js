@@ -56,6 +56,15 @@ const SIDEBAR_HTML = `
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
+  <div class="gemini-setting-row" style="flex-shrink:0;">
+    <label for="gemini-task-interval">作图启动间隔 / 随机波动（分钟）</label>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input type="number" id="gemini-task-interval" class="gemini-setting-number" min="0" step="0.1" value="0" title="设为 0 表示上一张结束后立即开始下一张" />
+      <span style="color:#888; font-size:12px;">±</span>
+      <input type="number" id="gemini-task-jitter" class="gemini-setting-number" min="0" step="0.1" value="0" title="每个任务都会在基础间隔上随机波动" />
+    </div>
+  </div>
+
   <div class="gemini-tabs" style="flex-shrink:0;">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
@@ -570,6 +579,14 @@ function injectControlUI() {
     const newChatInput = document.getElementById('gemini-newchat-interval');
     if (newChatInput) newChatInput.value = localStorage.getItem('gemini_saved_newchat_interval');
   }
+  if (localStorage.getItem('gemini_saved_task_interval')) {
+    const taskIntervalInput = document.getElementById('gemini-task-interval');
+    if (taskIntervalInput) taskIntervalInput.value = localStorage.getItem('gemini_saved_task_interval');
+  }
+  if (localStorage.getItem('gemini_saved_task_jitter')) {
+    const taskJitterInput = document.getElementById('gemini-task-jitter');
+    if (taskJitterInput) taskJitterInput.value = localStorage.getItem('gemini_saved_task_jitter');
+  }
 
   // 监听输入并自动保存
   prefixInput.addEventListener('input', () => {
@@ -597,6 +614,20 @@ function injectControlUI() {
   if (newChatInput) {
     newChatInput.addEventListener('input', () => {
       localStorage.setItem('gemini_saved_newchat_interval', newChatInput.value);
+    });
+  }
+
+  const taskIntervalInput = document.getElementById('gemini-task-interval');
+  if (taskIntervalInput) {
+    taskIntervalInput.addEventListener('input', () => {
+      localStorage.setItem('gemini_saved_task_interval', taskIntervalInput.value);
+    });
+  }
+
+  const taskJitterInput = document.getElementById('gemini-task-jitter');
+  if (taskJitterInput) {
+    taskJitterInput.addEventListener('input', () => {
+      localStorage.setItem('gemini_saved_task_jitter', taskJitterInput.value);
     });
   }
 
