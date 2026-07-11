@@ -253,7 +253,8 @@ html.gemini-sidebar-open {
 }
 
 /* 提示词文本框 */
-#gemini-prompt-input {
+#gemini-prompt-input,
+#gemini-chat-prompt-input {
   width: 100%;
   flex-grow: 1;
   min-height: 120px;
@@ -270,13 +271,16 @@ html.gemini-sidebar-open {
   outline: none;
   transition: border-color 0.2s;
 }
-#gemini-prompt-input:focus {
+#gemini-prompt-input:focus,
+#gemini-chat-prompt-input:focus {
   border-color: rgba(66, 133, 244, 0.5);
 }
-#gemini-prompt-input::placeholder {
+#gemini-prompt-input::placeholder,
+#gemini-chat-prompt-input::placeholder {
   color: #555;
 }
-#gemini-prompt-input:disabled {
+#gemini-prompt-input:disabled,
+#gemini-chat-prompt-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -340,7 +344,8 @@ html.gemini-sidebar-open {
 }
 
 /* 启动/停止按钮 */
-#gemini-auto-runner-btn {
+#gemini-auto-runner-btn,
+#gemini-chat-runner-btn {
   width: 100%;
   padding: 12px 0;
   background: linear-gradient(135deg, #4CAF50, #43A047);
@@ -354,22 +359,27 @@ html.gemini-sidebar-open {
   flex-shrink: 0;
   letter-spacing: 0.3px;
 }
-#gemini-auto-runner-btn:hover:not(:disabled) {
+#gemini-auto-runner-btn:hover:not(:disabled),
+#gemini-chat-runner-btn:hover:not(:disabled) {
   filter: brightness(1.1);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(76,175,80,0.3);
 }
-#gemini-auto-runner-btn:disabled {
+#gemini-auto-runner-btn:disabled,
+#gemini-chat-runner-btn:disabled {
   cursor: not-allowed;
   opacity: 0.8;
 }
-#gemini-auto-runner-btn.running {
+#gemini-auto-runner-btn.running,
+#gemini-chat-runner-btn.running {
   background: linear-gradient(135deg, #e53935, #c62828);
 }
-#gemini-auto-runner-btn.running:hover:not(:disabled) {
+#gemini-auto-runner-btn.running:hover:not(:disabled),
+#gemini-chat-runner-btn.running:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(229,57,53,0.3);
 }
-#gemini-auto-runner-btn.completed {
+#gemini-auto-runner-btn.completed,
+#gemini-chat-runner-btn.completed {
   background: linear-gradient(135deg, #616161, #424242);
 }
 
@@ -609,7 +619,8 @@ html.gemini-sidebar-open {
   margin-bottom: 10px;
   align-items: stretch;
 }
-.gemini-btn-row #gemini-auto-runner-btn {
+.gemini-btn-row #gemini-auto-runner-btn,
+.gemini-btn-row #gemini-chat-runner-btn {
   flex: 1;
 }
 
