@@ -44,30 +44,32 @@ const STYLE_CN_MAP = {
 // ========== 侧边栏 HTML 模板 ==========
 const SIDEBAR_HTML = `
   <div class="gemini-sidebar-header">
-    <div class="gemini-sidebar-title">🛠️ 批量作图队列</div>
+    <div class="gemini-sidebar-title">🛠️ 批量作图</div>
     <div class="gemini-header-actions">
-      <a href="https://gemini.google.com/app" target="_blank" class="gemini-link-btn" title="打开新的 Gemini 页面">🔗 新建 Gemini</a>
+      <button id="gemini-theme-toggle-btn" class="gemini-link-btn" title="切换深浅主题">🌓</button>
+      <a href="https://gemini.google.com/app" target="_blank" class="gemini-link-btn" title="打开新的 Gemini 页面">🔗 新建</a>
       <button class="gemini-collapse-btn" id="gemini-collapse-btn">▶ 收起</button>
     </div>
   </div>
 
-  <div class="gemini-setting-row" style="flex-shrink:0;">
-    <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
+  <div class="gemini-setting-row">
+    <label for="gemini-newchat-interval">每完成 <code>N</code> 张自动新建会话</label>
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
-  <div class="gemini-setting-row" style="flex-shrink:0;">
+  <div class="gemini-setting-row">
     <label for="gemini-task-interval">作图启动间隔 / 随机波动（分钟）</label>
-    <div style="display:flex; gap:8px; align-items:center;">
+    <div class="gemini-input-group">
       <input type="number" id="gemini-task-interval" class="gemini-setting-number" min="0" step="0.1" value="0" title="设为 0 表示上一张结束后立即开始下一张" />
-      <span style="color:#888; font-size:12px;">±</span>
+      <span class="gemini-input-separator">±</span>
       <input type="number" id="gemini-task-jitter" class="gemini-setting-number" min="0" step="0.1" value="0" title="每个任务都会在基础间隔上随机波动" />
     </div>
   </div>
 
-  <div class="gemini-tabs" style="flex-shrink:0;">
+  <div class="gemini-tabs">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
+    <button class="gemini-tab" data-tab="chat">💬 批量对话</button>
   </div>
 
   <!-- ===== Tab 1: 文本生图 ===== -->
@@ -75,9 +77,9 @@ const SIDEBAR_HTML = `
     <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
     <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
 
-    <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="gemini-label gemini-label-flex">
       <span>提示词列表</span>
-      <div style="display:flex;align-items:center;gap:4px;">
+      <div class="gemini-btn-group">
         <button id="gemini-shuffle-prompts-btn" class="gemini-link-btn" title="打乱当前列表">🔀 打乱</button>
         <button id="gemini-all-prompts-btn" class="gemini-link-btn" title="使用全部预设">🌌 全都要</button>
         <div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div>
@@ -87,7 +89,7 @@ const SIDEBAR_HTML = `
     <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
-    <div style="text-align:right;font-size:12px;margin-top:-6px;margin-bottom:8px;color:#888;">条数：<span id="gemini-prompt-count" style="color:#8ab4f8;font-weight:bold;">0</span></div>
+    <div class="gemini-meta-info">条数：<span id="gemini-prompt-count" class="gemini-count-val">0</span></div>
 
     <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
     <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
@@ -132,9 +134,44 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
-  <button id="gemini-download-btn" class="gemini-download-main-btn" style="margin-top:10px; margin-bottom:10px; flex-shrink:0;">📥 打包下载本页原图 (ZIP)</button>
+  <!-- ===== Tab 3: 批量对话 ===== -->
+  <div class="gemini-tab-content" id="gemini-tab-chat">
+    <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
+    <input type="text" id="gemini-chat-prefix-input" class="gemini-input-field" placeholder="例如：请帮我回答" value="" />
 
-  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none; flex-shrink:0;">
+    <div class="gemini-label gemini-label-flex">
+      <span>提示词列表</span>
+      <div class="gemini-btn-group">
+        <button id="gemini-chat-shuffle-prompts-btn" class="gemini-link-btn" title="打乱当前列表">🔀 打乱</button>
+      </div>
+    </div>
+    <textarea id="gemini-chat-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;今天天气怎么样？&#10;介绍一下西湖景点">今天天气怎么样？
+介绍一下西湖景点</textarea>
+    <div class="gemini-meta-info">条数：<span id="gemini-chat-prompt-count" class="gemini-count-val">0</span></div>
+
+    <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
+    <input type="text" id="gemini-chat-suffix-input" class="gemini-input-field" placeholder="例如：请用中文回答" value="" />
+
+    <div class="gemini-setting-row" style="border-bottom: none; margin-bottom: 0; padding: 5px 0;">
+      <label for="gemini-chat-send-interval">发送间隔（秒）</label>
+      <input type="number" id="gemini-chat-send-interval" class="gemini-setting-number" min="1" value="120" title="因为不需要等待生成结果，可以用固定时间间隔触发" />
+    </div>
+
+    <div id="gemini-chat-btn-container" style="margin-top: 15px;">
+      <div id="gemini-chat-start-row" class="gemini-btn-row">
+        <button id="gemini-chat-runner-btn">▶ 启动对话队列</button>
+      </div>
+      <button id="gemini-chat-pause-btn" class="gemini-running-pause-btn" style="display:none;">⏸ 暂停队列</button>
+      <div id="gemini-chat-pause-actions" class="gemini-pause-actions" style="display:none;">
+        <button id="gemini-chat-resume-btn" class="gemini-resume-btn">▶ 继续</button>
+        <button id="gemini-chat-terminate-btn" class="gemini-terminate-btn">🛑 终止</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="gemini-download-btn" class="gemini-download-main-btn">📥 打包下载本页原图 (<code>ZIP</code>)</button>
+
+  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none;">
     <div class="gemini-dashboard-grid">
       <div class="gemini-dashboard-row">
         <span class="gemini-dashboard-label">📋 任务进度</span>
@@ -150,7 +187,7 @@ const SIDEBAR_HTML = `
       </div>
       <div class="gemini-dashboard-row">
         <span class="gemini-dashboard-label">📊 平均作图</span>
-        <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
+        <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green">00:00</span>
       </div>
     </div>
     <div class="gemini-progress-bg" style="margin-top:6px;">
@@ -168,6 +205,7 @@ const SIDEBAR_HTML = `
 let _timerInterval = null;
 let _timerStartTime = null;   // 单张图片计时
 let _totalTimerStartTime = null;  // 总任务计时
+let _textRunMode = null;
 
 function _formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
@@ -267,6 +305,7 @@ window._geminiOnPromptStart = function() {
 window._geminiOnQueueEnd = function() {
   stopTimer();
   const textarea = document.getElementById('gemini-prompt-input');
+  const chatTextarea = document.getElementById('gemini-chat-prompt-input');
   const progressBar = document.getElementById('gemini-progress-fill');
   const progressText = document.getElementById('gemini-progress-text');
 
@@ -276,26 +315,44 @@ window._geminiOnQueueEnd = function() {
   const textPauseActions = document.getElementById('gemini-text-pause-actions');
   const btn = document.getElementById('gemini-auto-runner-btn');
   const experimentBtn = document.getElementById('gemini-experiment-btn');
+
+  // 图片 Tab
   const imageBtn = document.getElementById('gemini-image-runner-btn');
   const imagePauseActions = document.getElementById('gemini-image-pause-actions');
+
+  // 对话 Tab
+  const chatStartRow = document.getElementById('gemini-chat-start-row');
+  const chatPauseBtn = document.getElementById('gemini-chat-pause-btn');
+  const chatPauseActions = document.getElementById('gemini-chat-pause-actions');
+  const chatBtn = document.getElementById('gemini-chat-runner-btn');
 
   if (textPauseBtn) { textPauseBtn.style.display = 'none'; textPauseBtn.disabled = false; }
   if (textPauseActions) textPauseActions.style.display = 'none';
   if (imagePauseActions) imagePauseActions.style.display = 'none';
+  if (chatPauseBtn) { chatPauseBtn.style.display = 'none'; chatPauseBtn.disabled = false; }
+  if (chatPauseActions) chatPauseActions.style.display = 'none';
 
   const resetToIdle = () => {
     if (progressBar) progressBar.style.width = '0%';
     if (progressText) progressText.innerText = '准备就绪: 0 / 0';
     if (textStartRow) textStartRow.style.display = '';
-    if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.background = ''; btn.disabled = false; }
+    if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.backgroundImage = ''; btn.disabled = false; }
     if (experimentBtn) { experimentBtn.innerText = '🧪 小批量实验'; experimentBtn.className = 'gemini-experiment-btn'; experimentBtn.disabled = false; }
+    if (chatStartRow) chatStartRow.style.display = '';
+    if (chatBtn) { chatBtn.innerText = '▶ 启动对话队列'; chatBtn.className = ''; chatBtn.style.backgroundImage = ''; chatBtn.disabled = false; }
   };
 
   if (!window._geminiQueueAbort) {
     // 完成 → 短暂显示完成状态后恢复
-    if (textStartRow) textStartRow.style.display = '';
-    if (btn) { btn.innerText = '✅ 完成'; btn.className = 'completed'; }
-    setTimeout(resetToIdle, 3000);
+    if (window._textRunMode === 'chat') {
+      if (chatStartRow) chatStartRow.style.display = '';
+      if (chatBtn) { chatBtn.innerText = '✅ 完成'; chatBtn.className = 'completed'; }
+      setTimeout(resetToIdle, 3000);
+    } else {
+      if (textStartRow) textStartRow.style.display = '';
+      if (btn) { btn.innerText = '✅ 完成'; btn.className = 'completed'; }
+      setTimeout(resetToIdle, 3000);
+    }
   } else {
     resetToIdle();
   }
@@ -303,23 +360,24 @@ window._geminiOnQueueEnd = function() {
   // 重置图片队列按钮
   if (imageBtn) {
     imageBtn.style.display = '';
-    if (!window._geminiQueueAbort) {
+    if (!window._geminiQueueAbort && window._textRunMode === 'image') {
       imageBtn.innerText = '✅ 队列完成';
       imageBtn.className = 'completed';
       setTimeout(() => {
         imageBtn.innerText = '▶ 启动图片转换队列';
         imageBtn.className = '';
-        imageBtn.style.background = '';
+        imageBtn.style.backgroundImage = '';
       }, 3000);
     } else {
       imageBtn.innerText = '▶ 启动图片转换队列';
       imageBtn.className = '';
-      imageBtn.style.background = '';
+      imageBtn.style.backgroundImage = '';
     }
     imageBtn.disabled = false;
   }
 
   if (textarea) textarea.disabled = false;
+  if (chatTextarea) chatTextarea.disabled = false;
 };
 
 // ========== 注入侧边栏 ==========
@@ -331,6 +389,32 @@ function injectControlUI() {
   sidebar.id = 'gemini-auto-sidebar';
   sidebar.innerHTML = SIDEBAR_HTML;
   document.body.appendChild(sidebar);
+
+  // 初始化并绑定主题切换
+  const themeToggleBtn = document.getElementById('gemini-theme-toggle-btn');
+  let currentTheme = localStorage.getItem('gemini-theme');
+  if (!currentTheme) {
+    const isHostDark = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark') || 
+                       document.body.classList.contains('dark-theme') || 
+                       window.matchMedia('(prefers-color-scheme: dark)').matches;
+    currentTheme = isHostDark ? 'dark' : 'light';
+  }
+  const applyTheme = (theme) => {
+    sidebar.setAttribute('data-theme', theme);
+    localStorage.setItem('gemini-theme', theme);
+    if (themeToggleBtn) {
+      themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+      themeToggleBtn.title = theme === 'dark' ? '切换为浅色主题' : '切换为深色主题';
+    }
+  };
+  applyTheme(currentTheme);
+  if (themeToggleBtn) {
+    themeToggleBtn.onclick = () => {
+      const nextTheme = sidebar.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(nextTheme);
+    };
+  }
 
   // 恢复文本设置和下载目录设置
   const downloadFolderInput = document.getElementById('gemini-download-folder');
@@ -565,6 +649,18 @@ function injectControlUI() {
   const textResumeBtn = document.getElementById('gemini-text-resume-btn');
   const textTerminateBtn = document.getElementById('gemini-text-terminate-btn');
 
+  // ===== 批量对话 按钮与输入 =====
+  const chatBtn = document.getElementById('gemini-chat-runner-btn');
+  const chatTextarea = document.getElementById('gemini-chat-prompt-input');
+  const chatPrefixInput = document.getElementById('gemini-chat-prefix-input');
+  const chatSuffixInput = document.getElementById('gemini-chat-suffix-input');
+  const chatSendIntervalInput = document.getElementById('gemini-chat-send-interval');
+  const chatStartRow = document.getElementById('gemini-chat-start-row');
+  const chatPauseBtn = document.getElementById('gemini-chat-pause-btn');
+  const chatPauseActions = document.getElementById('gemini-chat-pause-actions');
+  const chatResumeBtn = document.getElementById('gemini-chat-resume-btn');
+  const chatTerminateBtn = document.getElementById('gemini-chat-terminate-btn');
+
   // ===== 状态持久化 (localStorage) =====
   if (localStorage.getItem('gemini_saved_prefix')) {
     prefixInput.value = localStorage.getItem('gemini_saved_prefix');
@@ -588,6 +684,20 @@ function injectControlUI() {
     if (taskJitterInput) taskJitterInput.value = localStorage.getItem('gemini_saved_task_jitter');
   }
 
+  // 批量对话 状态持久化
+  if (localStorage.getItem('gemini_saved_chat_prefix')) {
+    chatPrefixInput.value = localStorage.getItem('gemini_saved_chat_prefix');
+  }
+  if (localStorage.getItem('gemini_saved_chat_prompt')) {
+    chatTextarea.value = localStorage.getItem('gemini_saved_chat_prompt');
+  }
+  if (localStorage.getItem('gemini_saved_chat_suffix')) {
+    chatSuffixInput.value = localStorage.getItem('gemini_saved_chat_suffix');
+  }
+  if (localStorage.getItem('gemini_saved_chat_send_interval')) {
+    chatSendIntervalInput.value = localStorage.getItem('gemini_saved_chat_send_interval');
+  }
+
   // 监听输入并自动保存
   prefixInput.addEventListener('input', () => {
     localStorage.setItem('gemini_saved_prefix', prefixInput.value);
@@ -608,6 +718,28 @@ function injectControlUI() {
   updatePromptCount();
   suffixInput.addEventListener('input', () => {
     localStorage.setItem('gemini_saved_suffix', suffixInput.value);
+  });
+
+  // 批量对话 自动保存与计数
+  chatPrefixInput.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_chat_prefix', chatPrefixInput.value);
+  });
+  const updateChatPromptCount = () => {
+    const text = chatTextarea.value || '';
+    const count = text.split('\n').map(l => l.trim()).filter(l => l).length;
+    const badge = document.getElementById('gemini-chat-prompt-count');
+    if (badge) badge.innerText = count;
+  };
+  chatTextarea.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_chat_prompt', chatTextarea.value);
+    updateChatPromptCount();
+  });
+  updateChatPromptCount();
+  chatSuffixInput.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_chat_suffix', chatSuffixInput.value);
+  });
+  chatSendIntervalInput.addEventListener('input', () => {
+    localStorage.setItem('gemini_saved_chat_send_interval', chatSendIntervalInput.value);
   });
   
   const newChatInput = document.getElementById('gemini-newchat-interval');
@@ -631,14 +763,20 @@ function injectControlUI() {
     });
   }
 
-  // 跟踪当前运行模式
-  let _textRunMode = null;
+  // 跟踪当前运行模式 (使用全局声明的变量)
+  _textRunMode = null;
 
   // 三种互斥状态：idle / running / paused
   function showTextState(state) {
     textStartRow.style.display   = state === 'idle'    ? '' : 'none';
     textPauseBtn.style.display   = state === 'running' ? '' : 'none';
     textPauseActions.style.display = state === 'paused'  ? 'flex' : 'none';
+  }
+
+  function showChatState(state) {
+    chatStartRow.style.display   = state === 'idle'    ? '' : 'none';
+    chatPauseBtn.style.display   = state === 'running' ? '' : 'none';
+    chatPauseActions.style.display = state === 'paused'  ? 'flex' : 'none';
   }
 
   // 启动作图队列
@@ -687,6 +825,55 @@ function injectControlUI() {
     textPauseBtn.disabled = true;
     showTextState('running');
   };
+
+  // ===== 批量对话 启动/暂停/继续/终止按钮 =====
+  chatBtn.onclick = async () => {
+    _textRunMode = 'chat';
+    chatPauseBtn.innerText = '⏸ 暂停队列';
+    chatPauseBtn.disabled = false;
+    showChatState('running');
+    chatTextarea.disabled = true;
+    resetTimerDisplay();
+    await runGeminiChatQueue();
+  };
+
+  chatPauseBtn.onclick = () => {
+    window._geminiQueuePaused = true;
+    window._geminiAddLog('⏸ 已暂停，等待用户操作...', 'warn');
+    showChatState('paused');
+  };
+
+  chatResumeBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiAddLog('▶ 已继续', 'success');
+    chatPauseBtn.innerText = '⏸ 暂停队列';
+    showChatState('running');
+  };
+
+  chatTerminateBtn.onclick = () => {
+    window._geminiQueuePaused = false;
+    window._geminiQueueAbort = true;
+    window._geminiAddLog('🛑 已终止', 'warn');
+    chatPauseBtn.innerText = '⏳ 正在停止...';
+    chatPauseBtn.disabled = true;
+    showChatState('running');
+  };
+
+  const chatShuffleBtn = document.getElementById('gemini-chat-shuffle-prompts-btn');
+  if (chatShuffleBtn) {
+    chatShuffleBtn.onclick = () => {
+      const lines = chatTextarea.value.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length === 0) return;
+      for (let i = lines.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [lines[i], lines[j]] = [lines[j], lines[i]];
+      }
+      chatTextarea.value = lines.join('\n');
+      updateChatPromptCount();
+      localStorage.setItem('gemini_saved_chat_prompt', chatTextarea.value);
+      window._geminiAddLog(`🔀 已打乱 ${lines.length} 条对话提示词`, 'info');
+    };
+  }
 
   // ===== 图片转换：文件选择与拖拽 =====
   window._imageQueueFiles = [];

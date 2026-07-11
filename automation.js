@@ -168,13 +168,13 @@ async function executeInput(promptText, delaySec = 0, currentTaskIndex = 1, tota
       if (window._updateDashboardProgress) window._updateDashboardProgress(currentTaskIndex, totalTasks);
       if (btn) {
         btn.innerText = `⏸ 发送倒数 ${sec}s`;
-        btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
+        btn.style.backgroundImage = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%)`;
       }
       await sleep(1000);
     }
     if (btn && !window._geminiQueueAbort) {
       btn.innerText = '⏸ 暂停队列';
-      btn.style.background = '';
+      btn.style.backgroundImage = '';
     }
   }
 
@@ -435,14 +435,14 @@ async function waitUntilTimestamp(targetTimestamp, buttonId, idleText, countdown
     }
     if (btn) {
       btn.innerText = `${countdownPrefix} ${remainingSec}s`;
-      btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
+      btn.style.backgroundImage = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%)`;
     }
     await sleep(Math.min(1000, remainingMs));
   }
 
   if (btn && !window._geminiQueueAbort) {
     btn.innerText = idleText;
-    btn.style.background = '';
+    btn.style.backgroundImage = '';
   }
 }
 
@@ -609,7 +609,7 @@ async function runGeminiQueue() {
       const remainingMs = nextStartTimestamp - Date.now();
       if (remainingMs > 0) {
         window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-auto-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-text-pause-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
       }
     }
   }
@@ -963,3 +963,110 @@ async function runExperimentQueue() {
 
   if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
 }
+
+// ========== 批量对话队列 ==========
+async function runGeminiChatQueue() {
+  const rawPrompts = document.getElementById('gemini-chat-prompt-input').value;
+  const prompts = rawPrompts.split('\n').map(p => p.trim()).filter(p => p !== '');
+
+  if (prompts.length === 0) {
+    window._geminiAddLog('⚠️ 请先输入至少一个提示词！', 'warn');
+    return;
+  }
+
+  // 读取前缀/后缀
+  const prefix = (document.getElementById('gemini-chat-prefix-input')?.value || '').trim();
+  const suffix = (document.getElementById('gemini-chat-suffix-input')?.value || '').trim();
+
+  // 读取发送间隔
+  const intervalInput = document.getElementById('gemini-chat-send-interval');
+  const intervalSec = parseFloat(intervalInput?.value) || 120;
+  const intervalMs = Math.max(1, intervalSec) * 1000;
+
+  const progressBar = document.getElementById('gemini-progress-fill');
+  progressBar.style.width = '0%';
+  if (window._updateDashboardProgress) window._updateDashboardProgress(0, prompts.length);
+
+  window._geminiQueueAbort = false;
+  window._geminiQueuePaused = false;
+  window._geminiIsRunning = true;
+
+  await acquireWakeLock();
+
+  const queueStartTime = Date.now();
+  const site = getSiteConfig();
+  window._geminiAddLog(`🚀 [${site.name}] 对话队列启动，共 ${prompts.length} 个任务`, 'success');
+  if (prefix) window._geminiAddLog(`前缀: "${prefix}"`, 'info');
+  if (suffix) window._geminiAddLog(`后缀: "${suffix}"`, 'info');
+  window._geminiAddLog(`⏱ 发送间隔: ${intervalSec} 秒`, 'info');
+
+  if (window._geminiOnQueueStart) window._geminiOnQueueStart();
+
+  let successfulTasks = 0;
+
+  for (let i = 0; i < prompts.length; i++) {
+    await waitWhilePaused();
+
+    if (window._geminiQueueAbort) {
+      window._geminiAddLog(`⏹ 队列已停止 (已完成 ${i}/${prompts.length})`, 'warn');
+      break;
+    }
+
+    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join(' ');
+
+    window._geminiAddLog(`▶ 任务 ${i + 1}/${prompts.length} 开始`, 'info');
+
+    progressBar.style.width = `${(i / prompts.length) * 100}%`;
+    if (window._updateDashboardProgress) window._updateDashboardProgress(i + 1, prompts.length);
+
+    if (window._geminiOnPromptStart) window._geminiOnPromptStart();
+
+    const promptStartTime = Date.now();
+    const nextStartTimestamp = i < prompts.length - 1 ? promptStartTime + intervalMs : 0;
+    if (i < prompts.length - 1) {
+      window._geminiAddLog(`🕒 本任务发送后 ${intervalSec} 秒触发下一个对话`, 'info');
+    }
+
+    const inputSuccess = await executeInput(fullPrompt, 0, i + 1, prompts.length);
+
+    if (inputSuccess) {
+      window._geminiAddLog(`✅ 任务 ${i + 1} 已发送`, 'success');
+      successfulTasks++;
+      await sleep(2000); // 延迟 2 秒让页面响应发送
+    } else {
+      window._geminiAddLog(`❌ 任务 ${i + 1}: 输入/发送失败，跳过`, 'error');
+    }
+
+    // 自动新建会话
+    const newChatN = getNewChatInterval();
+    if (newChatN > 0 && (i + 1) % newChatN === 0 && !window._geminiQueueAbort) {
+      window._geminiAddLog(`📌 已完成 ${i + 1} 个任务，自动新建会话...`, 'info');
+      await openNewChat();
+    }
+
+    if (i < prompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
+      const remainingMs = nextStartTimestamp - Date.now();
+      if (remainingMs > 0) {
+        window._geminiAddLog(`⏳ 当前对话已发送，等待 ${formatElapsed(remainingMs)} 后启动下一个`, 'info');
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-chat-pause-btn', '⏸ 暂停队列', '⏸ 下一个对话倒数', i + 1, prompts.length);
+      }
+    }
+  }
+
+  const totalElapsed = Date.now() - queueStartTime;
+
+  if (!window._geminiQueueAbort) {
+    progressBar.style.width = '100%';
+    if (window._updateDashboardProgress) window._updateDashboardProgress(prompts.length, prompts.length);
+    window._geminiAddLog(`🎉 对话队列全部完成！总耗时 ${formatElapsed(totalElapsed)}`, 'success');
+  }
+
+  window._geminiIsRunning = false;
+  window._geminiQueuePaused = false;
+  await releaseWakeLock();
+
+  if (window._geminiOnQueueEnd) window._geminiOnQueueEnd();
+}
+
+window.runGeminiChatQueue = runGeminiChatQueue;
+
