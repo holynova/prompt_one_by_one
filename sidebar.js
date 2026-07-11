@@ -44,29 +44,28 @@ const STYLE_CN_MAP = {
 // ========== 侧边栏 HTML 模板 ==========
 const SIDEBAR_HTML = `
   <div class="gemini-sidebar-header">
-    <div class="gemini-sidebar-title">🛠️ 批量作图</div>
+    <div class="gemini-sidebar-title">🛠️ 批量作图队列</div>
     <div class="gemini-header-actions">
-      <button id="gemini-theme-toggle-btn" class="gemini-link-btn" title="切换深浅主题">🌓</button>
-      <a href="https://gemini.google.com/app" target="_blank" class="gemini-link-btn" title="打开新的 Gemini 页面">🔗 新建</a>
+      <a href="https://gemini.google.com/app" target="_blank" class="gemini-link-btn" title="打开新的 Gemini 页面">🔗 新建 Gemini</a>
       <button class="gemini-collapse-btn" id="gemini-collapse-btn">▶ 收起</button>
     </div>
   </div>
 
-  <div class="gemini-setting-row">
-    <label for="gemini-newchat-interval">每完成 <code>N</code> 张自动新建会话</label>
+  <div class="gemini-setting-row" style="flex-shrink:0;">
+    <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
-  <div class="gemini-setting-row">
+  <div class="gemini-setting-row" style="flex-shrink:0;">
     <label for="gemini-task-interval">作图启动间隔 / 随机波动（分钟）</label>
-    <div class="gemini-input-group">
+    <div style="display:flex; gap:8px; align-items:center;">
       <input type="number" id="gemini-task-interval" class="gemini-setting-number" min="0" step="0.1" value="0" title="设为 0 表示上一张结束后立即开始下一张" />
-      <span class="gemini-input-separator">±</span>
+      <span style="color:#888; font-size:12px;">±</span>
       <input type="number" id="gemini-task-jitter" class="gemini-setting-number" min="0" step="0.1" value="0" title="每个任务都会在基础间隔上随机波动" />
     </div>
   </div>
 
-  <div class="gemini-tabs">
+  <div class="gemini-tabs" style="flex-shrink:0;">
     <button class="gemini-tab active" data-tab="text">📝 文本生图</button>
     <button class="gemini-tab" data-tab="image">🖼 图片转换</button>
     <button class="gemini-tab" data-tab="chat">💬 批量对话</button>
@@ -77,9 +76,9 @@ const SIDEBAR_HTML = `
     <div class="gemini-label">前缀（自动添加到每条提示词前）</div>
     <input type="text" id="gemini-prefix-input" class="gemini-input-field" placeholder="例如：请帮我生成一张" value="生成图片" />
 
-    <div class="gemini-label gemini-label-flex">
+    <div class="gemini-label" style="display:flex;justify-content:space-between;align-items:center;">
       <span>提示词列表</span>
-      <div class="gemini-btn-group">
+      <div style="display:flex;align-items:center;gap:4px;">
         <button id="gemini-shuffle-prompts-btn" class="gemini-link-btn" title="打乱当前列表">🔀 打乱</button>
         <button id="gemini-all-prompts-btn" class="gemini-link-btn" title="使用全部预设">🌌 全都要</button>
         <div id="gemini-style-select-wrapper" class="gemini-style-select-wrapper"><button id="gemini-style-select-btn" class="gemini-link-btn" title="选择风格范围">🏷️ 选择风格 <span id="gemini-style-count"></span></button><div id="gemini-style-dropdown" class="gemini-style-dropdown" style="display:none;"><input type="text" id="gemini-style-search" class="gemini-style-search" placeholder="搜索风格..." /><div id="gemini-style-options" class="gemini-style-options"></div></div></div>
@@ -89,7 +88,7 @@ const SIDEBAR_HTML = `
     <textarea id="gemini-prompt-input" placeholder="在此粘贴提示词，一行一个...&#10;例如：&#10;下雨天的东方明珠, 浮世绘风格&#10;下雨天的东方明珠, 印象主义风格">下雨天的东方明珠, 浮世绘风格
 下雨天的东方明珠, 点彩派绘画风格
 下雨天的东方明珠, 印象主义风格</textarea>
-    <div class="gemini-meta-info">条数：<span id="gemini-prompt-count" class="gemini-count-val">0</span></div>
+    <div style="text-align:right;font-size:12px;margin-top:-6px;margin-bottom:8px;color:#888;">条数：<span id="gemini-prompt-count" style="color:#8ab4f8;font-weight:bold;">0</span></div>
 
     <div class="gemini-label">后缀（自动添加到每条提示词后）</div>
     <input type="text" id="gemini-suffix-input" class="gemini-input-field" placeholder="例如：高清, 8K" value="4K高清, 比例1:1" />
@@ -169,9 +168,9 @@ const SIDEBAR_HTML = `
     </div>
   </div>
 
-  <button id="gemini-download-btn" class="gemini-download-main-btn">📥 打包下载本页原图 (<code>ZIP</code>)</button>
+  <button id="gemini-download-btn" class="gemini-download-main-btn" style="margin-top:10px; margin-bottom:10px; flex-shrink:0;">📥 打包下载本页原图 (ZIP)</button>
 
-  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none;">
+  <div id="gemini-dashboard" class="gemini-dashboard" style="display:none; flex-shrink:0;">
     <div class="gemini-dashboard-grid">
       <div class="gemini-dashboard-row">
         <span class="gemini-dashboard-label">📋 任务进度</span>
@@ -187,7 +186,7 @@ const SIDEBAR_HTML = `
       </div>
       <div class="gemini-dashboard-row">
         <span class="gemini-dashboard-label">📊 平均作图</span>
-        <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green">00:00</span>
+        <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
       </div>
     </div>
     <div class="gemini-progress-bg" style="margin-top:6px;">
@@ -336,10 +335,10 @@ window._geminiOnQueueEnd = function() {
     if (progressBar) progressBar.style.width = '0%';
     if (progressText) progressText.innerText = '准备就绪: 0 / 0';
     if (textStartRow) textStartRow.style.display = '';
-    if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.backgroundImage = ''; btn.disabled = false; }
+    if (btn) { btn.innerText = '▶ 启动作图队列'; btn.className = ''; btn.style.background = ''; btn.disabled = false; }
     if (experimentBtn) { experimentBtn.innerText = '🧪 小批量实验'; experimentBtn.className = 'gemini-experiment-btn'; experimentBtn.disabled = false; }
     if (chatStartRow) chatStartRow.style.display = '';
-    if (chatBtn) { chatBtn.innerText = '▶ 启动对话队列'; chatBtn.className = ''; chatBtn.style.backgroundImage = ''; chatBtn.disabled = false; }
+    if (chatBtn) { chatBtn.innerText = '▶ 启动对话队列'; chatBtn.className = ''; chatBtn.style.background = ''; chatBtn.disabled = false; }
   };
 
   if (!window._geminiQueueAbort) {
@@ -366,12 +365,12 @@ window._geminiOnQueueEnd = function() {
       setTimeout(() => {
         imageBtn.innerText = '▶ 启动图片转换队列';
         imageBtn.className = '';
-        imageBtn.style.backgroundImage = '';
+        imageBtn.style.background = '';
       }, 3000);
     } else {
       imageBtn.innerText = '▶ 启动图片转换队列';
       imageBtn.className = '';
-      imageBtn.style.backgroundImage = '';
+      imageBtn.style.background = '';
     }
     imageBtn.disabled = false;
   }
@@ -389,32 +388,6 @@ function injectControlUI() {
   sidebar.id = 'gemini-auto-sidebar';
   sidebar.innerHTML = SIDEBAR_HTML;
   document.body.appendChild(sidebar);
-
-  // 初始化并绑定主题切换
-  const themeToggleBtn = document.getElementById('gemini-theme-toggle-btn');
-  let currentTheme = localStorage.getItem('gemini-theme');
-  if (!currentTheme) {
-    const isHostDark = document.documentElement.classList.contains('dark') || 
-                       document.body.classList.contains('dark') || 
-                       document.body.classList.contains('dark-theme') || 
-                       window.matchMedia('(prefers-color-scheme: dark)').matches;
-    currentTheme = isHostDark ? 'dark' : 'light';
-  }
-  const applyTheme = (theme) => {
-    sidebar.setAttribute('data-theme', theme);
-    localStorage.setItem('gemini-theme', theme);
-    if (themeToggleBtn) {
-      themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
-      themeToggleBtn.title = theme === 'dark' ? '切换为浅色主题' : '切换为深色主题';
-    }
-  };
-  applyTheme(currentTheme);
-  if (themeToggleBtn) {
-    themeToggleBtn.onclick = () => {
-      const nextTheme = sidebar.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      applyTheme(nextTheme);
-    };
-  }
 
   // 恢复文本设置和下载目录设置
   const downloadFolderInput = document.getElementById('gemini-download-folder');

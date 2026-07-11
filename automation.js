@@ -168,13 +168,13 @@ async function executeInput(promptText, delaySec = 0, currentTaskIndex = 1, tota
       if (window._updateDashboardProgress) window._updateDashboardProgress(currentTaskIndex, totalTasks);
       if (btn) {
         btn.innerText = `⏸ 发送倒数 ${sec}s`;
-        btn.style.backgroundImage = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%)`;
+        btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
       }
       await sleep(1000);
     }
     if (btn && !window._geminiQueueAbort) {
       btn.innerText = '⏸ 暂停队列';
-      btn.style.backgroundImage = '';
+      btn.style.background = '';
     }
   }
 
@@ -435,14 +435,14 @@ async function waitUntilTimestamp(targetTimestamp, buttonId, idleText, countdown
     }
     if (btn) {
       btn.innerText = `${countdownPrefix} ${remainingSec}s`;
-      btn.style.backgroundImage = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%)`;
+      btn.style.background = `linear-gradient(90deg, rgba(255,255,255,0.15) ${progress}%, transparent ${progress}%), linear-gradient(135deg, #e53935, #c62828)`;
     }
     await sleep(Math.min(1000, remainingMs));
   }
 
   if (btn && !window._geminiQueueAbort) {
     btn.innerText = idleText;
-    btn.style.backgroundImage = '';
+    btn.style.background = '';
   }
 }
 
@@ -609,7 +609,7 @@ async function runGeminiQueue() {
       const remainingMs = nextStartTimestamp - Date.now();
       if (remainingMs > 0) {
         window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-text-pause-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
+        await waitUntilTimestamp(nextStartTimestamp, 'gemini-auto-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
       }
     }
   }

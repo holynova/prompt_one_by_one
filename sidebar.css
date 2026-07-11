@@ -1,142 +1,28 @@
-/* ==========================================================================
-   Design System — Vue.js (VitePress Documentation Style)
+/* ========================================
    Gemini 批量作图插件 — 侧边栏样式
-   ========================================================================== */
+   ======================================== */
 
+/* 侧边栏容器 */
 #gemini-auto-sidebar {
-  /* --- 默认暗色主题 (VitePress Dark Theme) --- */
-  --vp-c-brand: #42b883;
-  --vp-c-brand-dark: #338a60;
-  --vp-c-navy: #35495e;
-  --vp-c-text-1: #ebebeb;
-  --vp-c-text-2: #a1a1a6;
-  --vp-c-bg: #1b1b1f;
-  --vp-c-bg-alt: #202024;
-  --vp-c-border: #2e2e32;
-  
-  /* 语义化容器颜色 */
-  --vp-c-tip-border: #42b883;
-  --vp-c-tip-bg: rgba(66, 184, 131, 0.08);
-  --vp-c-warning-border: #e7c000;
-  --vp-c-warning-bg: rgba(231, 192, 0, 0.08);
-  --vp-c-danger-border: #c00;
-  --vp-c-danger-bg: rgba(204, 0, 0, 0.08);
-
-  /* 字体系统 */
-  --vp-font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  --vp-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-  /* 边框圆角 */
-  --vp-r-micro: 4px;
-  --vp-r-normal: 8px;
-  --vp-r-large: 12px;
-
-  /* 阴影与过渡 */
-  --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --vp-shadow-large: 0 8px 24px rgba(0, 0, 0, 0.2);
-  --vp-transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-  /* 侧边栏基础属性 */
   --sidebar-width: 340px;
   position: fixed;
   top: 0;
   right: 0;
   height: 100vh;
   width: var(--sidebar-width);
-  background-color: var(--vp-c-bg);
-  border-left: 1px solid var(--vp-c-border);
-  box-shadow: var(--vp-shadow);
+  background-color: #1a1a2e;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  box-shadow: -4px 0 20px rgba(0,0,0,0.3);
   z-index: 999999;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 16px;
   box-sizing: border-box;
-  font-family: var(--vp-font-sans);
-  color: var(--vp-c-text-1);
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s, color 0.3s;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  transition: transform 0.3s ease;
   transform: translateX(0);
+  color: #e0e0e0;
   overflow-y: auto;
-}
-
-/* ==========================================================================
-   自适应与强制主题机制
-   ========================================================================== */
-
-/* 1. 默认自适应系统模式 (当未设置 data-theme 属性时) */
-@media (prefers-color-scheme: light) {
-  #gemini-auto-sidebar {
-    --vp-c-text-1: #2c3e50;
-    --vp-c-text-2: #476582;
-    --vp-c-bg: #ffffff;
-    --vp-c-bg-alt: #f6f6f7;
-    --vp-c-border: #e2e2e3;
-    
-    --vp-c-tip-bg: #f0f9eb;
-    --vp-c-warning-bg: #fffdf4;
-    --vp-c-danger-bg: #fdf3f3;
-    --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-}
-
-/* 2. 默认自适应宿主网页浅色主题 */
-html.light #gemini-auto-sidebar,
-body.light #gemini-auto-sidebar,
-body.light-theme #gemini-auto-sidebar,
-html[data-theme="light"] #gemini-auto-sidebar {
-  --vp-c-text-1: #2c3e50;
-  --vp-c-text-2: #476582;
-  --vp-c-bg: #ffffff;
-  --vp-c-bg-alt: #f6f6f7;
-  --vp-c-border: #e2e2e3;
-  
-  --vp-c-tip-bg: #f0f9eb;
-  --vp-c-warning-bg: #fffdf4;
-  --vp-c-danger-bg: #fdf3f3;
-  --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* 3. 默认自适应宿主网页暗色主题 */
-html.dark #gemini-auto-sidebar,
-body.dark #gemini-auto-sidebar,
-body.dark-theme #gemini-auto-sidebar,
-html[data-theme="dark"] #gemini-auto-sidebar {
-  --vp-c-text-1: #ebebeb;
-  --vp-c-text-2: #a1a1a6;
-  --vp-c-bg: #1b1b1f;
-  --vp-c-bg-alt: #202024;
-  --vp-c-border: #2e2e32;
-  
-  --vp-c-tip-bg: rgba(66, 184, 131, 0.08);
-  --vp-c-warning-bg: rgba(231, 192, 0, 0.08);
-  --vp-c-danger-bg: rgba(204, 0, 0, 0.08);
-  --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* 4. 用户手动强制设定的暗色/浅色模式 (优先级最高) */
-#gemini-auto-sidebar[data-theme="dark"] {
-  --vp-c-text-1: #ebebeb;
-  --vp-c-text-2: #a1a1a6;
-  --vp-c-bg: #1b1b1f;
-  --vp-c-bg-alt: #202024;
-  --vp-c-border: #2e2e32;
-  
-  --vp-c-tip-bg: rgba(66, 184, 131, 0.08);
-  --vp-c-warning-bg: rgba(231, 192, 0, 0.08);
-  --vp-c-danger-bg: rgba(204, 0, 0, 0.08);
-  --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-#gemini-auto-sidebar[data-theme="light"] {
-  --vp-c-text-1: #2c3e50;
-  --vp-c-text-2: #476582;
-  --vp-c-bg: #ffffff;
-  --vp-c-bg-alt: #f6f6f7;
-  --vp-c-border: #e2e2e3;
-  
-  --vp-c-tip-bg: #f0f9eb;
-  --vp-c-warning-bg: #fffdf4;
-  --vp-c-danger-bg: #fdf3f3;
-  --vp-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 页面内容缩进，不被侧边栏遮挡 */
@@ -155,638 +41,120 @@ html.gemini-sidebar-open {
   height: 100%;
   cursor: col-resize;
   z-index: 1000000;
-  transition: background-color 0.2s;
+  transition: background 0.2s;
 }
 .gemini-resize-handle:hover,
 .gemini-resize-handle.active {
-  background-color: var(--vp-c-brand);
+  background: rgba(66, 133, 244, 0.5);
 }
 
-/* ==========================================================================
-   设置项配置
-   ========================================================================== */
-
+/* 设置项 */
 .gemini-setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 4px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--vp-c-border);
-  transition: background-color 0.15s ease;
-  border-radius: var(--vp-r-micro);
-}
-.gemini-setting-row:hover {
-  background-color: rgba(66, 184, 131, 0.02);
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .gemini-setting-row label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--vp-c-text-2);
+  font-size: 11px;
+  color: #aaa;
 }
 .gemini-setting-number {
-  width: 54px;
-  padding: 6px 8px;
-  background-color: var(--vp-c-bg-alt);
-  color: var(--vp-c-text-1);
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
+  width: 50px;
+  padding: 4px 6px;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
   font-size: 12px;
-  font-family: var(--vp-font-mono);
   text-align: center;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 .gemini-setting-number:focus {
   outline: none;
-  border-color: var(--vp-c-brand);
-  box-shadow: 0 0 0 2px rgba(66, 184, 131, 0.2);
-  background-color: var(--vp-c-bg);
+  border-color: #1e88e5;
 }
 
-/* ==========================================================================
-   头部区域
-   ========================================================================== */
-
+/* 头部区域 */
 .gemini-sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
 .gemini-sidebar-title {
-  font-weight: 600;
-  font-size: 19px; /* H3 style */
-  color: var(--vp-c-text-1);
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: -0.01em;
+  gap: 6px;
 }
 
 .gemini-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* 预设文字和二级链接按钮 */
 .gemini-link-btn {
-  background-color: var(--vp-c-tip-bg);
-  border: 1px solid rgba(66, 184, 131, 0.25);
-  color: var(--vp-c-brand);
+  background: rgba(66, 133, 244, 0.15);
+  border: 1px solid rgba(66, 133, 244, 0.3);
+  color: #8ab4f8;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: var(--vp-r-normal);
+  padding: 4px 10px;
+  border-radius: 4px;
   text-decoration: none;
-  transition: var(--vp-transition);
+  transition: all 0.2s;
   white-space: nowrap;
 }
 .gemini-link-btn:hover {
-  background-color: rgba(66, 184, 131, 0.2);
-  border-color: var(--vp-c-brand);
-  color: var(--vp-c-brand-dark);
+  background: rgba(66, 133, 244, 0.3);
+  color: #aecbfa;
 }
 
-/* 收起按钮 */
-.gemini-collapse-btn {
-  border: 1px solid var(--vp-c-border);
-  background-color: var(--vp-c-bg-alt);
-  cursor: pointer;
-  color: var(--vp-c-text-2);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: var(--vp-r-normal);
-  transition: var(--vp-transition);
-}
-.gemini-collapse-btn:hover {
-  background-color: var(--vp-c-border);
-  color: var(--vp-c-text-1);
-}
-
-/* ==========================================================================
-   标签选项 (Tab Menu Style)
-   ========================================================================== */
-
-.gemini-tabs {
-  display: flex;
-  padding: 3px;
-  margin-bottom: 20px;
-  background-color: var(--vp-c-bg-alt);
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-}
-.gemini-tab {
-  flex: 1;
-  padding: 8px 0;
-  border: none;
-  background-color: transparent;
-  color: var(--vp-c-text-2);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: var(--vp-transition);
-  position: relative;
-  overflow: hidden;
-}
-.gemini-tab:hover {
-  color: var(--vp-c-text-1);
-}
-.gemini-tab::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background-color: var(--vp-c-brand);
-  transition: width 0.25s ease, left 0.25s ease;
-}
-.gemini-tab.active::after {
-  width: 100%;
-  left: 0;
-}
-.gemini-tab.active {
-  background-color: var(--vp-c-bg);
-  color: var(--vp-c-brand);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-/* Tab 内容区 */
-.gemini-tab-content {
-  display: none;
-}
-.gemini-tab-content.active {
-  display: block;
-}
-
-/* ==========================================================================
-   输入框与表单标签
-   ========================================================================== */
-
-.gemini-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--vp-c-text-2);
-  margin-top: 18px;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.gemini-input-field {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  box-sizing: border-box;
-  font-size: 13px;
-  background-color: var(--vp-c-bg-alt);
-  color: var(--vp-c-text-1);
-  outline: none;
-  font-family: var(--vp-font-mono);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-  margin-bottom: 16px;
-}
-.gemini-input-field:focus {
-  border-color: var(--vp-c-brand);
-  box-shadow: 0 0 0 2px rgba(66, 184, 131, 0.2);
-  background-color: var(--vp-c-bg);
-}
-.gemini-input-field::placeholder {
-  color: var(--vp-c-text-2);
-  opacity: 0.5;
-}
-
-/* 提示词大文本框 */
-#gemini-prompt-input {
-  width: 100%;
-  flex-grow: 1;
-  min-height: 140px;
-  padding: 10px 14px;
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  resize: vertical;
-  box-sizing: border-box;
-  font-size: 13px;
-  font-family: var(--vp-font-mono);
-  line-height: 1.6;
-  margin-bottom: 16px;
-  background-color: var(--vp-c-bg-alt);
-  color: var(--vp-c-text-1);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-#gemini-prompt-input:focus {
-  border-color: var(--vp-c-brand);
-  box-shadow: 0 0 0 2px rgba(66, 184, 131, 0.2);
-  background-color: var(--vp-c-bg);
-}
-#gemini-prompt-input::placeholder {
-  color: var(--vp-c-text-2);
-  opacity: 0.5;
-}
-#gemini-prompt-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ==========================================================================
-   按钮组件 (Button System)
-   ========================================================================== */
-
-/* 通用按钮布局行 */
-.gemini-btn-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: stretch;
-}
-.gemini-btn-row button {
-  flex: 1;
-}
-
-/* 启动/运行主按钮 */
-#gemini-auto-runner-btn,
-#gemini-image-runner-btn,
-.gemini-resume-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background-color: var(--vp-c-brand);
-  color: #ffffff !important;
-  border: none;
-  border-radius: var(--vp-r-normal);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--vp-shadow);
-  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-#gemini-auto-runner-btn:hover:not(:disabled),
-#gemini-image-runner-btn:hover:not(:disabled),
-.gemini-resume-btn:hover {
-  background-color: var(--vp-c-brand-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-#gemini-auto-runner-btn:active:not(:disabled),
-#gemini-image-runner-btn:active:not(:disabled),
-.gemini-resume-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-#gemini-auto-runner-btn:disabled,
-#gemini-image-runner-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* 实验模式按钮 (Slate Blue) */
-.gemini-experiment-btn {
-  padding: 12px 16px;
-  background-color: var(--vp-c-navy);
-  color: #ffffff !important;
-  border: none;
-  border-radius: var(--vp-r-normal);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 0;
-}
-.gemini-experiment-btn:hover:not(:disabled) {
-  background-color: #2c3e50;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-.gemini-experiment-btn:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-.gemini-experiment-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* 停止/暂停/终止按钮 (Crimson Danger) */
-.gemini-running-pause-btn,
-.gemini-terminate-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background-color: var(--vp-c-danger-border);
-  color: #ffffff !important;
-  border: none;
-  border-radius: var(--vp-r-normal);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.gemini-running-pause-btn:hover:not(:disabled),
-.gemini-terminate-btn:hover {
-  background-color: #a00000;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-.gemini-running-pause-btn:active:not(:disabled),
-.gemini-terminate-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-.gemini-running-pause-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* 暂停操作按钮组 */
-.gemini-pause-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.gemini-pause-actions button {
-  flex: 1;
-}
-
-/* 下载主按钮 */
-.gemini-download-main-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background-color: var(--vp-c-navy);
-  color: #ffffff !important;
-  border: none;
-  border-radius: var(--vp-r-normal);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
-  flex-shrink: 0;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.gemini-download-main-btn:hover:not(:disabled) {
-  background-color: #2c3e50;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-.gemini-download-main-btn:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-.gemini-download-main-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* 运行中与完成状态样式变色 */
-#gemini-auto-runner-btn.running,
-#gemini-image-runner-btn.running {
-  background-color: var(--vp-c-danger-border) !important;
-}
-#gemini-auto-runner-btn.completed,
-#gemini-image-runner-btn.completed {
-  background-color: #555555;
-  cursor: default;
-}
-
-/* ==========================================================================
-   进度条指示器
-   ========================================================================== */
-
-.gemini-progress-container {
-  margin-bottom: 12px;
-  flex-shrink: 0;
-}
-
-.gemini-progress-bg {
-  width: 100%;
-  height: 8px;
-  background-color: var(--vp-c-bg-alt);
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  overflow: hidden;
-}
-
-#gemini-progress-fill {
-  width: 0%;
-  height: 100%;
-  background-color: var(--vp-c-brand);
-  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border-radius: var(--vp-r-normal);
-}
-
-/* ==========================================================================
-   任务看板仪表盘 (VitePress Info Box Layout)
-   ========================================================================== */
-
-.gemini-dashboard {
-  background-color: var(--vp-c-tip-bg);
-  border-left: 4px solid var(--vp-c-tip-border);
-  border-radius: var(--vp-r-micro) var(--vp-r-normal) var(--vp-r-normal) var(--vp-r-micro);
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-  transition: var(--vp-transition);
-}
-
-.gemini-dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  row-gap: 8px;
-  column-gap: 16px;
-}
-
-.gemini-dashboard-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 0;
-}
-.gemini-dashboard-grid .gemini-dashboard-row {
-  margin-bottom: 0;
-}
-.gemini-dashboard-row + .gemini-dashboard-row {
-  border-top: none; /* 清理老样式，采用更干净的网格排版 */
-}
-
-.gemini-dashboard-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--vp-c-text-2);
-}
-
-.gemini-dashboard-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--vp-c-text-1);
-  font-variant-numeric: tabular-nums;
-  font-family: var(--vp-font-mono);
-}
-
-/* 局部指标变色 */
-.gemini-dash-blue {
-  color: var(--vp-c-brand);
-}
-.gemini-dash-orange {
-  color: var(--vp-c-warning-border);
-}
-.gemini-dash-green {
-  color: var(--vp-c-brand);
-}
-
-.gemini-dashboard .gemini-progress-bg {
-  margin-top: 10px;
-}
-
-/* ==========================================================================
-   日志面板 (Preformatted Code Blocks Style)
-   ========================================================================== */
-
-.gemini-log-container {
-  flex-shrink: 0;
-  margin-top: 12px;
-}
-
-#gemini-log-panel {
-  width: 100%;
-  height: 160px;
-  overflow-y: auto;
-  background-color: #202024 !important; /* 强制暗色背景，极高对比度 */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--vp-r-normal);
-  padding: 10px 12px;
-  box-sizing: border-box;
-  font-size: 11px;
-  font-family: var(--vp-font-mono);
-  line-height: 1.6;
-  color: #ebebeb !important;
-}
-
-/* 滚动条美化 */
-#gemini-log-panel::-webkit-scrollbar,
-.gemini-style-options::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-#gemini-log-panel::-webkit-scrollbar-track,
-.gemini-style-options::-webkit-scrollbar-track {
-  background: transparent;
-}
-#gemini-log-panel::-webkit-scrollbar-thumb,
-.gemini-style-options::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
-}
-#gemini-log-panel::-webkit-scrollbar-thumb:hover,
-.gemini-style-options::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.24);
-}
-
-.gemini-log-entry {
-  margin-bottom: 6px;
-  word-break: break-all;
-  padding: 2px 4px;
-  border-radius: var(--vp-r-micro);
-  transition: background-color 0.15s ease;
-}
-.gemini-log-entry:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-}
-.gemini-log-time {
-  color: #666666;
-  margin-right: 6px;
-}
-.gemini-log-success {
-  color: #42b883; /* Vue Green */
-}
-.gemini-log-error {
-  color: #ff6b6b;
-}
-.gemini-log-info {
-  color: #89ddff;
-}
-.gemini-log-warn {
-  color: #e7c000;
-}
-
-/* ==========================================================================
-   风格选择多选下拉框
-   ========================================================================== */
-
+/* 风格多选下拉框 */
 .gemini-style-select-wrapper {
   position: relative;
 }
 
-@keyframes gemini-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .gemini-style-dropdown {
   position: absolute;
-  bottom: 100%; /* 朝上方弹出，避免被遮挡 */
+  top: 100%;
   right: 0;
   width: 280px;
   max-height: 320px;
-  background-color: var(--vp-c-bg-alt);
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  box-shadow: var(--vp-shadow-large);
-  z-index: 100;
-  margin-bottom: 6px;
+  background: #1e1e3a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 10;
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: gemini-fade-in 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .gemini-style-search {
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border: none;
-  border-bottom: 1px solid var(--vp-c-border);
-  background-color: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
   font-size: 12px;
   outline: none;
   box-sizing: border-box;
 }
 .gemini-style-search::placeholder {
-  color: var(--vp-c-text-2);
-  opacity: 0.5;
+  color: #666;
+}
+.gemini-style-search:focus {
+  background: rgba(255,255,255,0.08);
 }
 
 .gemini-style-options {
@@ -794,28 +162,38 @@ html.gemini-sidebar-open {
   max-height: 260px;
   padding: 4px 0;
 }
+.gemini-style-options::-webkit-scrollbar {
+  width: 4px;
+}
+.gemini-style-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gemini-style-options::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
 
 .gemini-style-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   cursor: pointer;
   font-size: 12px;
-  color: var(--vp-c-text-1);
-  transition: var(--vp-transition);
+  color: #ccc;
+  transition: background 0.15s;
   user-select: none;
 }
 .gemini-style-option:hover {
-  background-color: rgba(66, 184, 131, 0.08);
+  background: rgba(255,255,255,0.06);
 }
 .gemini-style-option.selected {
-  background-color: rgba(66, 184, 131, 0.12);
-  color: var(--vp-c-brand);
+  background: rgba(66, 133, 244, 0.12);
+  color: #8ab4f8;
 }
 
 .gemini-style-option input[type="checkbox"] {
-  accent-color: var(--vp-c-brand);
+  accent-color: #4285f4;
   width: 14px;
   height: 14px;
   flex-shrink: 0;
@@ -828,66 +206,338 @@ html.gemini-sidebar-open {
   white-space: nowrap;
 }
 
-/* ==========================================================================
-   图片上传区与预览网格
-   ========================================================================== */
-
-.gemini-image-upload-area {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 2px dashed var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  background-color: var(--vp-c-bg-alt);
-  transition: var(--vp-transition);
-  justify-content: center;
-}
-.gemini-image-upload-area.dragover {
-  border-color: var(--vp-c-brand);
-  background-color: var(--vp-c-tip-bg);
-}
-.gemini-image-select-btn {
-  padding: 6px 12px;
-  background-color: var(--vp-c-brand);
-  color: #ffffff;
+.gemini-collapse-btn {
   border: none;
-  border-radius: var(--vp-r-normal);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  color: #aaa;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.gemini-collapse-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+/* 标签文字 */
+.gemini-label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* 前缀/后缀输入框 */
+.gemini-input-field {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 13px;
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+}
+.gemini-input-field:focus {
+  border-color: rgba(66, 133, 244, 0.5);
+}
+.gemini-input-field::placeholder {
+  color: #555;
+}
+
+/* 提示词文本框 */
+#gemini-prompt-input {
+  width: 100%;
+  flex-grow: 1;
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  resize: none;
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.05);
+  color: #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#gemini-prompt-input:focus {
+  border-color: rgba(66, 133, 244, 0.5);
+}
+#gemini-prompt-input::placeholder {
+  color: #555;
+}
+#gemini-prompt-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 进度条区域 */
+.gemini-progress-container {
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.gemini-progress-bg {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#gemini-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+  transition: width 0.4s ease;
+  border-radius: 4px;
+}
+
+/* ===== 任务看板 ===== */
+.gemini-dashboard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.gemini-dashboard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+.gemini-dashboard-row + .gemini-dashboard-row {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.gemini-dashboard-label {
+  font-size: 12px;
+  color: #aaa;
+}
+.gemini-dashboard-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e0e0e0;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+.gemini-dash-blue { color: #8ab4f8; }
+.gemini-dash-orange { color: #FFA726; }
+
+.gemini-dashboard .gemini-progress-bg {
+  margin-top: 8px;
+}
+
+/* 启动/停止按钮 */
+#gemini-auto-runner-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+#gemini-auto-runner-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+#gemini-auto-runner-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+#gemini-auto-runner-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+#gemini-auto-runner-btn.running:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+#gemini-auto-runner-btn.completed {
+  background: linear-gradient(135deg, #616161, #424242);
+}
+
+/* 日志面板 */
+.gemini-log-container {
+  flex-shrink: 0;
+}
+
+#gemini-log-panel {
+  width: 100%;
+  height: 160px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  line-height: 1.6;
+  color: #aaa;
+}
+
+#gemini-log-panel::-webkit-scrollbar {
+  width: 4px;
+}
+#gemini-log-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+#gemini-log-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+.gemini-log-entry {
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+.gemini-log-time {
+  color: #666;
+  margin-right: 4px;
+}
+.gemini-log-success {
+  color: #66BB6A;
+}
+.gemini-log-error {
+  color: #ef5350;
+}
+.gemini-log-info {
+  color: #8ab4f8;
+}
+.gemini-log-warn {
+  color: #FFA726;
+}
+
+/* 展开按钮 */
+#gemini-open-btn {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  z-index: 999998;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+  display: none;
+  transition: all 0.25s;
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+}
+#gemini-open-btn:hover {
+  filter: brightness(1.1);
+  padding-right: 18px;
+}
+
+/* ===== Tab 切换 ===== */
+.gemini-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #444;
+}
+.gemini-tab {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  background: #2a2a2a;
+  color: #999;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--vp-transition);
+  transition: all 0.2s;
+}
+.gemini-tab:hover {
+  background: #333;
+  color: #ccc;
+}
+.gemini-tab.active {
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+  color: #fff;
+}
+
+/* Tab 内容区 */
+.gemini-tab-content {
+  display: none;
+}
+.gemini-tab-content.active {
+  display: block;
+}
+
+/* ===== 图片上传区 ===== */
+.gemini-image-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.gemini-image-upload-area.dragover {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+.gemini-image-select-btn {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s;
   white-space: nowrap;
 }
 .gemini-image-select-btn:hover {
-  background-color: var(--vp-c-brand-dark);
+  filter: brightness(1.15);
 }
 .gemini-image-count {
   font-size: 11px;
-  color: var(--vp-c-text-2);
+  color: #999;
 }
 
 /* 图片预览网格 */
 .gemini-image-preview {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 8px;
+  gap: 6px;
   max-height: 200px;
   overflow-y: auto;
-  margin-bottom: 12px;
-  padding: 4px;
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  background-color: var(--vp-c-bg-alt);
+  margin-bottom: 10px;
 }
 .gemini-image-preview-item {
   position: relative;
-  border-radius: var(--vp-r-normal);
+  border-radius: 6px;
   overflow: hidden;
-  border: 1px solid var(--vp-c-border);
-  background-color: var(--vp-c-bg);
-  box-shadow: var(--vp-shadow);
+  border: 1px solid #444;
+  background: #222;
 }
 .gemini-image-preview-item img {
   width: 100%;
@@ -898,182 +548,227 @@ html.gemini-sidebar-open {
 .gemini-image-name {
   display: block;
   font-size: 9px;
-  color: var(--vp-c-text-2);
+  color: #aaa;
   text-align: center;
-  padding: 4px 2px;
+  padding: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .gemini-image-del-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
-  height: 18px;
-  background-color: rgba(204, 0, 0, 0.85);
-  color: #ffffff;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background: rgba(229, 57, 53, 0.85);
+  color: #fff;
   border: none;
   border-radius: 50%;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 11px;
+  line-height: 14px;
   text-align: center;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 }
 .gemini-image-preview-item:hover .gemini-image-del-btn {
   opacity: 1;
 }
 
-/* 图片转换提示词大文本框 */
+/* 图片转换按钮（复用 auto-runner-btn 样式） */
+#gemini-image-runner-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+#gemini-image-runner-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+#gemini-image-runner-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+#gemini-image-runner-btn.completed {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+}
+
+/* ===== 按钮行布局 ===== */
+.gemini-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: stretch;
+}
+.gemini-btn-row #gemini-auto-runner-btn {
+  flex: 1;
+}
+
+/* ===== 暂停操作按钮容器 ===== */
+.gemini-pause-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* 运行中的暂停按钮（单独一个全宽按钮） */
+.gemini-running-pause-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+}
+.gemini-running-pause-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+.gemini-running-pause-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.gemini-resume-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #4CAF50, #43A047);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+.gemini-resume-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+
+.gemini-terminate-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+}
+.gemini-terminate-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+}
+
+/* ===== 实验模式按钮 ===== */
+.gemini-experiment-btn {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #7B1FA2, #6A1B9A);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+.gemini-experiment-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(123,31,162,0.3);
+}
+.gemini-experiment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.gemini-experiment-btn.running {
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+
+/* 图片转换提示词 textarea */
 .gemini-image-prompt-textarea {
   width: 100%;
   min-height: 80px;
   max-height: 160px;
   resize: vertical;
-  background-color: var(--vp-c-bg-alt);
-  color: var(--vp-c-text-1);
-  border: 1px solid var(--vp-c-border);
-  border-radius: var(--vp-r-normal);
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  box-sizing: border-box;
-  margin-bottom: 12px;
+  background-color: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
   font-family: inherit;
-  transition: var(--vp-transition);
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  line-height: 1.5;
 }
 .gemini-image-prompt-textarea:focus {
   outline: none;
-  border-color: var(--vp-c-brand);
-  box-shadow: 0 0 0 1px var(--vp-c-brand);
+  border-color: #1e88e5;
 }
 
-/* ==========================================================================
-   隐藏时的展开按钮 (Open Button)
-   ========================================================================== */
-
-#gemini-open-btn {
-  position: fixed;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  padding: 14px 10px;
-  background-color: var(--vp-c-brand);
-  color: #ffffff !important;
+/* ===== 下载主按钮 ===== */
+.gemini-download-main-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #1976D2, #0D47A1);
+  color: white;
   border: none;
-  border-radius: var(--vp-r-normal) 0 0 var(--vp-r-normal);
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  z-index: 999998;
-  font-weight: 600;
-  font-size: 13px;
-  box-shadow: var(--vp-shadow-large);
-  display: none;
-  transition: var(--vp-transition);
-  writing-mode: vertical-rl;
-  letter-spacing: 2px;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
 }
-#gemini-open-btn:hover {
-  background-color: var(--vp-c-brand-dark);
-  padding-right: 14px;
+.gemini-download-main-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
-
-/* ==========================================================================
-   布局辅助工具类 (Layout Helpers)
-   ========================================================================== */
-
-.gemini-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.gemini-download-main-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.gemini-input-separator {
-  color: var(--vp-c-text-2);
-  font-size: 12px;
+/* 把任务进度看板排成两列 */
+.gemini-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 6px;
+  column-gap: 12px;
 }
-
-.gemini-label-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.gemini-dashboard-grid .gemini-dashboard-row {
+  margin-bottom: 0;
+  padding: 4px;
 }
-
-.gemini-btn-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.gemini-meta-info {
-  text-align: right;
-  font-size: 12px;
-  margin-top: -6px;
-  margin-bottom: 8px;
-  color: var(--vp-c-text-2);
-}
-
-.gemini-count-val {
-  color: var(--vp-c-brand);
-  font-weight: bold;
-}
-
-/* ==========================================================================
-   代码行内样式 & 自定义提示框样式 (Inline Code & Custom Containers)
-   ========================================================================== */
-
-#gemini-auto-sidebar code {
-  font-family: var(--vp-font-mono);
-  font-size: 12px;
-  background-color: var(--vp-c-bg-alt);
-  color: #c8d6e2; /* Default dark mode inline code color */
-  padding: 2px 5px;
-  border-radius: var(--vp-r-micro);
-  border: 1px solid var(--vp-c-border);
-  transition: var(--vp-transition);
-}
-
-/* 宿主如果为浅色模式 */
-html.light #gemini-auto-sidebar code,
-body.light #gemini-auto-sidebar code,
-body.light-theme #gemini-auto-sidebar code,
-html[data-theme="light"] #gemini-auto-sidebar code {
-  color: #476582;
-}
-
-.gemini-custom-block {
-  padding: 12px 16px;
-  border-radius: var(--vp-r-normal);
-  margin-bottom: 12px;
-  border-left: 4px solid transparent;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.gemini-custom-block-title {
-  font-weight: 600;
-  font-size: 13px;
-  margin-top: 0;
-  margin-bottom: 6px;
-}
-.gemini-custom-block.tip {
-  border-left-color: var(--vp-c-tip-border);
-  background-color: var(--vp-c-tip-bg);
-  color: var(--vp-c-text-1);
-}
-.gemini-custom-block.warning {
-  border-left-color: var(--vp-c-warning-border);
-  background-color: var(--vp-c-warning-bg);
-  color: var(--vp-c-text-1);
-}
-.gemini-custom-block.danger {
-  border-left-color: var(--vp-c-danger-border);
-  background-color: var(--vp-c-danger-bg);
-  color: var(--vp-c-text-1);
-}
-
-
