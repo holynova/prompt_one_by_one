@@ -607,6 +607,16 @@ function injectControlUI() {
       tab.classList.add('active');
       const target = sidebar.querySelector(`#gemini-tab-${tab.dataset.tab}`);
       if (target) target.classList.add('active');
+
+      // 切换页签时，若为批量对话 Tab，则隐藏下面的打包下载原图按钮
+      const downloadBtn = document.getElementById('gemini-download-btn');
+      if (downloadBtn) {
+        if (tab.dataset.tab === 'chat') {
+          downloadBtn.style.display = 'none';
+        } else {
+          downloadBtn.style.display = '';
+        }
+      }
     };
   });
 

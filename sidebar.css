@@ -255,34 +255,34 @@ html.gemini-sidebar-open {
 /* 提示词文本框 */
 #gemini-prompt-input,
 #gemini-chat-prompt-input {
-  width: 100%;
-  flex-grow: 1;
-  min-height: 120px;
-  padding: 10px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  resize: none;
-  box-sizing: border-box;
-  font-size: 13px;
-  line-height: 1.6;
-  margin-bottom: 10px;
-  background: rgba(255,255,255,0.05);
-  color: #e0e0e0;
-  outline: none;
-  transition: border-color 0.2s;
+  width: 100% !important;
+  flex-grow: 1 !important;
+  min-height: 120px !important;
+  padding: 10px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 6px !important;
+  resize: none !important;
+  box-sizing: border-box !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  margin-bottom: 10px !important;
+  background: rgba(255,255,255,0.05) !important;
+  color: #e0e0e0 !important;
+  outline: none !important;
+  transition: border-color 0.2s !important;
 }
 #gemini-prompt-input:focus,
 #gemini-chat-prompt-input:focus {
-  border-color: rgba(66, 133, 244, 0.5);
+  border-color: rgba(66, 133, 244, 0.5) !important;
 }
 #gemini-prompt-input::placeholder,
 #gemini-chat-prompt-input::placeholder {
-  color: #555;
+  color: #555 !important;
 }
 #gemini-prompt-input:disabled,
 #gemini-chat-prompt-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
 /* 进度条区域 */
@@ -346,41 +346,41 @@ html.gemini-sidebar-open {
 /* 启动/停止按钮 */
 #gemini-auto-runner-btn,
 #gemini-chat-runner-btn {
-  width: 100%;
-  padding: 12px 0;
-  background: linear-gradient(135deg, #4CAF50, #43A047);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  flex-shrink: 0;
-  letter-spacing: 0.3px;
+  width: 100% !important;
+  padding: 12px 0 !important;
+  background: linear-gradient(135deg, #4CAF50, #43A047) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+  flex-shrink: 0 !important;
+  letter-spacing: 0.3px !important;
 }
 #gemini-auto-runner-btn:hover:not(:disabled),
 #gemini-chat-runner-btn:hover:not(:disabled) {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+  filter: brightness(1.1) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3) !important;
 }
 #gemini-auto-runner-btn:disabled,
 #gemini-chat-runner-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.8;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
 }
 #gemini-auto-runner-btn.running,
 #gemini-chat-runner-btn.running {
-  background: linear-gradient(135deg, #e53935, #c62828);
+  background: linear-gradient(135deg, #e53935, #c62828) !important;
 }
 #gemini-auto-runner-btn.running:hover:not(:disabled),
 #gemini-chat-runner-btn.running:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+  box-shadow: 0 4px 12px rgba(229,57,53,0.3) !important;
 }
 #gemini-auto-runner-btn.completed,
 #gemini-chat-runner-btn.completed {
-  background: linear-gradient(135deg, #616161, #424242);
+  background: linear-gradient(135deg, #616161, #424242) !important;
 }
 
 /* 日志面板 */
