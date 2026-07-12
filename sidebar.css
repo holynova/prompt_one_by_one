@@ -31,6 +31,12 @@ html.gemini-sidebar-open {
   overflow-x: hidden !important;
   transition: width 0.3s ease;
 }
+html.gemini-sidebar-open body {
+  width: calc(100% - var(--sidebar-width, 340px)) !important;
+  margin-right: var(--sidebar-width, 340px) !important;
+  box-sizing: border-box !important;
+  transition: width 0.3s ease, margin-right 0.3s ease;
+}
 
 /* 拖拽调整宽度的手柄 */
 .gemini-resize-handle {
@@ -207,18 +213,23 @@ html.gemini-sidebar-open {
 }
 
 .gemini-collapse-btn {
-  border: none;
-  background: rgba(255,255,255,0.06);
-  cursor: pointer;
-  color: #aaa;
-  font-size: 13px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  border: none !important;
+  background: rgba(255,255,255,0.08) !important;
+  cursor: pointer !important;
+  color: #bbb !important;
+  font-size: 13px !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  font-weight: 600 !important;
 }
 .gemini-collapse-btn:hover {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
+  background: rgba(255,255,255,0.16) !important;
+  color: #fff !important;
+  transform: translateX(2px) !important;
+}
+.gemini-collapse-btn:active {
+  transform: translateX(1px) scale(0.95) !important;
 }
 
 /* 标签文字 */
@@ -441,24 +452,28 @@ html.gemini-sidebar-open {
   top: 50%;
   right: 0;
   transform: translateY(-50%);
-  padding: 12px 14px;
-  background: linear-gradient(135deg, #4CAF50, #43A047);
-  color: white;
-  border: none;
-  border-radius: 8px 0 0 8px;
-  cursor: pointer;
-  z-index: 999998;
-  font-weight: 700;
-  font-size: 13px;
-  box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+  padding: 16px 14px !important;
+  background: linear-gradient(135deg, #4CAF50, #43A047) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px 0 0 8px !important;
+  cursor: pointer !important;
+  z-index: 999998 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  box-shadow: -4px 0 16px rgba(76,175,80,0.3) !important;
   display: none;
-  transition: all 0.25s;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
   writing-mode: vertical-rl;
   letter-spacing: 2px;
 }
 #gemini-open-btn:hover {
-  filter: brightness(1.1);
-  padding-right: 18px;
+  transform: translateY(-50%) translateX(-4px) !important;
+  box-shadow: -6px 0 20px rgba(76,175,80,0.4) !important;
+  filter: brightness(1.1) !important;
+}
+#gemini-open-btn:active {
+  transform: translateY(-50%) translateX(-2px) scale(0.95) !important;
 }
 
 /* ===== Tab 切换 ===== */

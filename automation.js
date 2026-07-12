@@ -414,21 +414,23 @@ function sampleTaskIntervalMs(settings = getTaskIntervalSettings()) {
   return Math.round(sampledMinutes * 60 * 1000);
 }
 
-async function waitUntilTimestamp(targetTimestamp, buttonId, idleText, countdownPrefix, currentTaskIndex, totalTasks) {
-  if (!targetTimestamp || window._geminiQueueAbort) return;
-
+async function waitUntilTimestamp(getDynamicTargetTimestamp, buttonId, idleText, countdownPrefix, currentTaskIndex, totalTasks) {
   const btn = document.getElementById(buttonId);
-  const totalDurationMs = Math.max(1, targetTimestamp - Date.now());
 
   while (!window._geminiQueueAbort) {
     await waitWhilePaused();
     if (window._geminiQueueAbort) break;
 
+    const targetTimestamp = getDynamicTargetTimestamp();
+    if (!targetTimestamp) break;
+
     const remainingMs = targetTimestamp - Date.now();
     if (remainingMs <= 0) break;
 
     const remainingSec = Math.ceil(remainingMs / 1000);
-    const progress = ((totalDurationMs - remainingMs) / totalDurationMs) * 100;
+    const elapsedMs = Date.now() - (targetTimestamp - remainingMs);
+    const totalMs = Math.max(1, remainingMs + elapsedMs);
+    const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
 
     if (window._updateDashboardProgress) {
       window._updateDashboardProgress(currentTaskIndex, totalTasks);
@@ -543,8 +545,12 @@ async function runGeminiQueue() {
       break;
     }
 
+    // 每次循环重新读取前缀和后缀（允许暂停时修改）
+    const prefixVal = (document.getElementById('gemini-prefix-input')?.value || '').trim();
+    const suffixVal = (document.getElementById('gemini-suffix-input')?.value || '').trim();
+
     // 组合完整提示词
-    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join(' ');
+    const fullPrompt = [prefixVal, prompts[i], suffixVal].filter(Boolean).join(' ');
 
     window._geminiAddLog(`▶ 任务 ${i + 1}/${prompts.length} 开始`, 'info');
 
@@ -556,10 +562,18 @@ async function runGeminiQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const sampledIntervalMs = i < prompts.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
-    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
-    if (sampledIntervalMs > 0) {
-      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    const jitterFactor = Math.random() * 2 - 1;
+    const getDynamicTargetTimestamp = () => {
+      const baseMinutes = parseFloat(document.getElementById('gemini-task-interval')?.value) || 0;
+      const jitterMinutes = parseFloat(document.getElementById('gemini-task-jitter')?.value) || 0;
+      const sampledMinutes = Math.max(0, baseMinutes + jitterFactor * jitterMinutes);
+      const sampledMs = Math.round(sampledMinutes * 60 * 1000);
+      return sampledMs > 0 ? promptStartTime + sampledMs : 0;
+    };
+
+    const initialIntervalMs = i < prompts.length - 1 ? getDynamicTargetTimestamp() - promptStartTime : 0;
+    if (initialIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(initialIntervalMs)} 触发下一张`, 'info');
     }
 
     const inputSuccess = await executeInput(fullPrompt, 0, i + 1, prompts.length);
@@ -567,8 +581,9 @@ async function runGeminiQueue() {
     if (inputSuccess) {
       const waitStart = Date.now();
       await sleep(1000);
-      const observerWaitMs = nextStartTimestamp
-        ? Math.max(0, nextStartTimestamp - Date.now())
+      const targetTimestamp = getDynamicTargetTimestamp();
+      const observerWaitMs = targetTimestamp
+        ? Math.max(0, targetTimestamp - Date.now())
         : QUEUE_CONFIG.timeoutMs;
       const result = await startObserver(observerWaitMs);
       const generateElapsed = Date.now() - waitStart;
@@ -605,11 +620,14 @@ async function runGeminiQueue() {
       await openNewChat();
     }
 
-    if (i < prompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
-      const remainingMs = nextStartTimestamp - Date.now();
-      if (remainingMs > 0) {
-        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-auto-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
+    if (i < prompts.length - 1 && !window._geminiQueueAbort) {
+      const targetTimestamp = getDynamicTargetTimestamp();
+      if (targetTimestamp) {
+        const remainingMs = targetTimestamp - Date.now();
+        if (remainingMs > 0) {
+          window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+          await waitUntilTimestamp(getDynamicTargetTimestamp, 'gemini-auto-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, prompts.length);
+        }
       }
     }
   }
@@ -725,6 +743,9 @@ async function runImageQueue() {
       break;
     }
 
+    // 每次循环重新读取转换提示词（允许暂停时修改）
+    const imagePrompt = (document.getElementById('gemini-image-prompt')?.value || '').trim();
+
     const file = files[i];
     window._geminiAddLog(`▶ 任务 ${i + 1}/${files.length}: ${file.name}`, 'info');
 
@@ -734,10 +755,18 @@ async function runImageQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const sampledIntervalMs = i < files.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
-    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
-    if (sampledIntervalMs > 0) {
-      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    const jitterFactor = Math.random() * 2 - 1;
+    const getDynamicTargetTimestamp = () => {
+      const baseMinutes = parseFloat(document.getElementById('gemini-task-interval')?.value) || 0;
+      const jitterMinutes = parseFloat(document.getElementById('gemini-task-jitter')?.value) || 0;
+      const sampledMinutes = Math.max(0, baseMinutes + jitterFactor * jitterMinutes);
+      const sampledMs = Math.round(sampledMinutes * 60 * 1000);
+      return sampledMs > 0 ? promptStartTime + sampledMs : 0;
+    };
+
+    const initialIntervalMs = i < files.length - 1 ? getDynamicTargetTimestamp() - promptStartTime : 0;
+    if (initialIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(initialIntervalMs)} 触发下一张`, 'info');
     }
 
     // 第一步：上传图片
@@ -757,13 +786,14 @@ async function runImageQueue() {
     await sleep(500);
 
     // 第三步：输入提示词
-    const inputSuccess = await executeInput(prompt);
+    const inputSuccess = await executeInput(imagePrompt);
 
     if (inputSuccess) {
       // 第四步：等待生成完成
       await sleep(1000);
-      const observerWaitMs = nextStartTimestamp
-        ? Math.max(0, nextStartTimestamp - Date.now())
+      const targetTimestamp = getDynamicTargetTimestamp();
+      const observerWaitMs = targetTimestamp
+        ? Math.max(0, targetTimestamp - Date.now())
         : QUEUE_CONFIG.timeoutMs;
       const result = await startObserver(observerWaitMs);
       const elapsed = Date.now() - promptStartTime;
@@ -792,11 +822,14 @@ async function runImageQueue() {
       await openNewChat();
     }
 
-    if (i < files.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
-      const remainingMs = nextStartTimestamp - Date.now();
-      if (remainingMs > 0) {
-        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-image-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, files.length);
+    if (i < files.length - 1 && !window._geminiQueueAbort) {
+      const targetTimestamp = getDynamicTargetTimestamp();
+      if (targetTimestamp) {
+        const remainingMs = targetTimestamp - Date.now();
+        if (remainingMs > 0) {
+          window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+          await waitUntilTimestamp(getDynamicTargetTimestamp, 'gemini-image-runner-btn', '⏸ 暂停队列', '⏸ 下一张倒数', i + 1, files.length);
+        }
       }
     }
   }
@@ -880,7 +913,11 @@ async function runExperimentQueue() {
       break;
     }
 
-    const fullPrompt = [prefix, experimentPrompts[i], suffix].filter(Boolean).join(' ');
+    // 每次循环重新读取前缀和后缀（允许暂停时修改）
+    const prefixVal = (document.getElementById('gemini-prefix-input')?.value || '').trim();
+    const suffixVal = (document.getElementById('gemini-suffix-input')?.value || '').trim();
+
+    const fullPrompt = [prefixVal, experimentPrompts[i], suffixVal].filter(Boolean).join(' ');
 
     window._geminiAddLog(`🧪 实验任务 ${i + 1}/${experimentPrompts.length} 开始`, 'info');
 
@@ -890,10 +927,18 @@ async function runExperimentQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const sampledIntervalMs = i < experimentPrompts.length - 1 ? sampleTaskIntervalMs(intervalSettings) : 0;
-    const nextStartTimestamp = sampledIntervalMs > 0 ? promptStartTime + sampledIntervalMs : 0;
-    if (sampledIntervalMs > 0) {
-      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(sampledIntervalMs)} 触发下一张`, 'info');
+    const jitterFactor = Math.random() * 2 - 1;
+    const getDynamicTargetTimestamp = () => {
+      const baseMinutes = parseFloat(document.getElementById('gemini-task-interval')?.value) || 0;
+      const jitterMinutes = parseFloat(document.getElementById('gemini-task-jitter')?.value) || 0;
+      const sampledMinutes = Math.max(0, baseMinutes + jitterFactor * jitterMinutes);
+      const sampledMs = Math.round(sampledMinutes * 60 * 1000);
+      return sampledMs > 0 ? promptStartTime + sampledMs : 0;
+    };
+
+    const initialIntervalMs = i < experimentPrompts.length - 1 ? getDynamicTargetTimestamp() - promptStartTime : 0;
+    if (initialIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务启动后 ${formatElapsed(initialIntervalMs)} 触发下一张`, 'info');
     }
 
     const inputSuccess = await executeInput(fullPrompt, 0, i + 1, experimentPrompts.length);
@@ -901,8 +946,9 @@ async function runExperimentQueue() {
     if (inputSuccess) {
       const waitStart = Date.now();
       await sleep(1000);
-      const observerWaitMs = nextStartTimestamp
-        ? Math.max(0, nextStartTimestamp - Date.now())
+      const targetTimestamp = getDynamicTargetTimestamp();
+      const observerWaitMs = targetTimestamp
+        ? Math.max(0, targetTimestamp - Date.now())
         : QUEUE_CONFIG.timeoutMs;
       const result = await startObserver(observerWaitMs);
       const generateElapsed = Date.now() - waitStart;
@@ -939,11 +985,14 @@ async function runExperimentQueue() {
       await openNewChat();
     }
 
-    if (i < experimentPrompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
-      const remainingMs = nextStartTimestamp - Date.now();
-      if (remainingMs > 0) {
-        window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-text-pause-btn', '⏸ 暂停实验', '⏸ 下一张倒数', i + 1, experimentPrompts.length);
+    if (i < experimentPrompts.length - 1 && !window._geminiQueueAbort) {
+      const targetTimestamp = getDynamicTargetTimestamp();
+      if (targetTimestamp) {
+        const remainingMs = targetTimestamp - Date.now();
+        if (remainingMs > 0) {
+          window._geminiAddLog(`⏳ 当前任务已完成，等待 ${formatElapsed(remainingMs)} 后启动下一张`, 'info');
+          await waitUntilTimestamp(getDynamicTargetTimestamp, 'gemini-text-pause-btn', '⏸ 暂停实验', '⏸ 下一张倒数', i + 1, experimentPrompts.length);
+        }
       }
     }
   }
@@ -1012,7 +1061,11 @@ async function runGeminiChatQueue() {
       break;
     }
 
-    const fullPrompt = [prefix, prompts[i], suffix].filter(Boolean).join(' ');
+    // 每次循环重新读取前缀和后缀（允许暂停时修改）
+    const prefixVal = (document.getElementById('gemini-chat-prefix-input')?.value || '').trim();
+    const suffixVal = (document.getElementById('gemini-chat-suffix-input')?.value || '').trim();
+
+    const fullPrompt = [prefixVal, prompts[i], suffixVal].filter(Boolean).join(' ');
 
     window._geminiAddLog(`▶ 任务 ${i + 1}/${prompts.length} 开始`, 'info');
 
@@ -1022,9 +1075,15 @@ async function runGeminiChatQueue() {
     if (window._geminiOnPromptStart) window._geminiOnPromptStart();
 
     const promptStartTime = Date.now();
-    const nextStartTimestamp = i < prompts.length - 1 ? promptStartTime + intervalMs : 0;
-    if (i < prompts.length - 1) {
-      window._geminiAddLog(`🕒 本任务发送后 ${intervalSec} 秒触发下一个对话`, 'info');
+    const getDynamicTargetTimestamp = () => {
+      const intervalSecVal = parseFloat(document.getElementById('gemini-chat-send-interval')?.value) || 120;
+      const intervalMsVal = Math.max(1, intervalSecVal) * 1000;
+      return i < prompts.length - 1 ? promptStartTime + intervalMsVal : 0;
+    };
+
+    const initialIntervalMs = i < prompts.length - 1 ? getDynamicTargetTimestamp() - promptStartTime : 0;
+    if (initialIntervalMs > 0) {
+      window._geminiAddLog(`🕒 本任务发送后 ${Math.round(initialIntervalMs / 1000)} 秒触发下一个对话`, 'info');
     }
 
     const inputSuccess = await executeInput(fullPrompt, 0, i + 1, prompts.length);
@@ -1044,11 +1103,14 @@ async function runGeminiChatQueue() {
       await openNewChat();
     }
 
-    if (i < prompts.length - 1 && nextStartTimestamp && !window._geminiQueueAbort) {
-      const remainingMs = nextStartTimestamp - Date.now();
-      if (remainingMs > 0) {
-        window._geminiAddLog(`⏳ 当前对话已发送，等待 ${formatElapsed(remainingMs)} 后启动下一个`, 'info');
-        await waitUntilTimestamp(nextStartTimestamp, 'gemini-chat-pause-btn', '⏸ 暂停队列', '⏸ 下一个对话倒数', i + 1, prompts.length);
+    if (i < prompts.length - 1 && !window._geminiQueueAbort) {
+      const targetTimestamp = getDynamicTargetTimestamp();
+      if (targetTimestamp) {
+        const remainingMs = targetTimestamp - Date.now();
+        if (remainingMs > 0) {
+          window._geminiAddLog(`⏳ 当前对话已发送，等待 ${formatElapsed(remainingMs)} 后启动下一个`, 'info');
+          await waitUntilTimestamp(getDynamicTargetTimestamp, 'gemini-chat-pause-btn', '⏸ 暂停队列', '⏸ 下一个对话倒数', i + 1, prompts.length);
+        }
       }
     }
   }

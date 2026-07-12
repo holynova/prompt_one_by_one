@@ -44,19 +44,19 @@ const STYLE_CN_MAP = {
 // ========== 侧边栏 HTML 模板 ==========
 const SIDEBAR_HTML = `
   <div class="gemini-sidebar-header">
-    <div class="gemini-sidebar-title">🛠️ 批量作图队列</div>
+    <div class="gemini-sidebar-title" id="gemini-sidebar-title">🛠️ 批量作图队列</div>
     <div class="gemini-header-actions">
       <a href="https://gemini.google.com/app" target="_blank" class="gemini-link-btn" title="打开新的 Gemini 页面">🔗 新建 Gemini</a>
-      <button class="gemini-collapse-btn" id="gemini-collapse-btn">▶ 收起</button>
+      <button class="gemini-collapse-btn" id="gemini-collapse-btn">→ 收起</button>
     </div>
   </div>
 
-  <div class="gemini-setting-row" style="flex-shrink:0;">
-    <label for="gemini-newchat-interval">每完成 N 张自动新建会话</label>
+  <div class="gemini-setting-row" id="gemini-setting-row-newchat" style="flex-shrink:0;">
+    <label for="gemini-newchat-interval" id="gemini-newchat-label">每完成 <code>N</code> 张自动新建会话</label>
     <input type="number" id="gemini-newchat-interval" class="gemini-setting-number" min="0" value="1" title="设为 0 表示不启用" />
   </div>
 
-  <div class="gemini-setting-row" style="flex-shrink:0;">
+  <div class="gemini-setting-row" id="gemini-setting-row-interval" style="flex-shrink:0;">
     <label for="gemini-task-interval">作图启动间隔 / 随机波动（分钟）</label>
     <div style="display:flex; gap:8px; align-items:center;">
       <input type="number" id="gemini-task-interval" class="gemini-setting-number" min="0" step="0.1" value="0" title="设为 0 表示上一张结束后立即开始下一张" />
@@ -185,7 +185,7 @@ const SIDEBAR_HTML = `
         <span id="gemini-dash-total" class="gemini-dashboard-value gemini-dash-orange">00:00</span>
       </div>
       <div class="gemini-dashboard-row">
-        <span class="gemini-dashboard-label">📊 平均作图</span>
+        <span class="gemini-dashboard-label" id="gemini-dash-average-label">📊 平均作图</span>
         <span id="gemini-dash-average" class="gemini-dashboard-value gemini-dash-green" style="color:#34a853">00:00</span>
       </div>
     </div>
@@ -559,7 +559,7 @@ function injectControlUI() {
   // 创建展开按钮
   const openBtn = document.createElement('button');
   openBtn.id = 'gemini-open-btn';
-  openBtn.innerText = '◀ 展开';
+  openBtn.innerText = '← 展开';
   document.body.appendChild(openBtn);
   
   // === 初始化侧边栏状态 ===
@@ -608,14 +608,27 @@ function injectControlUI() {
       const target = sidebar.querySelector(`#gemini-tab-${tab.dataset.tab}`);
       if (target) target.classList.add('active');
 
-      // 切换页签时，若为批量对话 Tab，则隐藏下面的打包下载原图按钮
+      // 切换页签时，同步文本与显示状态
       const downloadBtn = document.getElementById('gemini-download-btn');
-      if (downloadBtn) {
-        if (tab.dataset.tab === 'chat') {
-          downloadBtn.style.display = 'none';
-        } else {
-          downloadBtn.style.display = '';
-        }
+      const titleEl = document.getElementById('gemini-sidebar-title');
+      const newChatLabel = document.getElementById('gemini-newchat-label');
+      const intervalRow = document.getElementById('gemini-setting-row-interval');
+      const averageLabel = document.getElementById('gemini-dash-average-label');
+
+      if (tab.dataset.tab === 'chat') {
+        // 批量对话模式
+        if (downloadBtn) downloadBtn.style.display = 'none';
+        if (titleEl) titleEl.innerText = '💬 批量对话队列';
+        if (newChatLabel) newChatLabel.innerHTML = '每完成 <code>N</code> 条自动新建会话';
+        if (intervalRow) intervalRow.style.display = 'none'; // 隐藏全局作图启动间隔
+        if (averageLabel) averageLabel.innerText = '📊 平均对话';
+      } else {
+        // 作图模式
+        if (downloadBtn) downloadBtn.style.display = '';
+        if (titleEl) titleEl.innerText = '🛠️ 批量作图队列';
+        if (newChatLabel) newChatLabel.innerHTML = '每完成 <code>N</code> 张自动新建会话';
+        if (intervalRow) intervalRow.style.display = ''; // 显示全局作图启动间隔
+        if (averageLabel) averageLabel.innerText = '📊 平均作图';
       }
     };
   });
